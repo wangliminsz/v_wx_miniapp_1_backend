@@ -100,56 +100,36 @@
             </div>
 
             <div v-if="viewMode === 'list'" class="space-y-4">
+
                 <div v-for="product in products" :key="product.id"
                     class="bg-dark-200 rounded-lg border border-dark-100 overflow-hidden">
-                    <div class="p-4 flex items-center gap-4">
-                        <div class="flex-shrink-0">
-                            <input type="checkbox" :id="`product-${product.id}`" :checked="isSelected(product.id)"
-                                @change="toggleProductSelection(product)"
-                                class="w-5 h-5 text-secondary focus:ring-secondary rounded transition-colors" />
-                            <label :for="`product-${product.id}`" class="sr-only">{{ product.name }}</label>
-                        </div>
+                    <!-- <div class="p-4 flex items-center gap-4">
+                        <div class="flex-grow min-w-0"></div>
+                    </div> -->
 
-                        <div class="flex-shrink-0 w-20 h-20 overflow-hidden bg-dark-100 rounded-md">
-                            <img :src="product.featuredAsset ? `${product.featuredAsset.preview}?w=100&h=100` : 'https://via.placeholder.com/100x100?text=No+Image'"
-                                :alt="product.name" class="w-full h-full object-cover" />
-                        </div>
+                    <!-- ### -->
+                    <div class="flex flex-col w-full p-5">
+                        <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 
-                        <!-- <div class="flex-shrink-0 w-20 h-20 overflow-hidden bg-dark-100 rounded-md">
-                            <img :src="product.featuredAsset ? `${product.featuredAsset.preview}?w=100&h=100` : 'https://via.placeholder.com/100x100?text=No+Image'"
-                                :alt="product.name"
-                                class="w-full h-full object-cover" />
-                        </div> -->
+                        <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 
 
+                        <div class="flex flex-row justify-between w-full">
 
-                        <div class="flex-grow min-w-0">
-                            <div class="flex items-center justify-between gap-3 mb-1">
-                                <div class="flex items-center gap-3">
-                                    <h3 class="text-lg font-semibold text-white truncate">{{ product.name }}</h3>
-                                    <router-link
-                                        :to="{ name: 'ManageVariants', params: { productId: product.id } }"
-                                        class="flex-shrink-0 px-3 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-500 transition-colors">
-                                        Manage variants
-                                    </router-link>
-                                </div>
+                            <div>
 
-                                <!-- File Icons next to product name -->
-                                <div v-if="product.customFields?.techDocs?.length > 0" class="flex items-center gap-1">
-                                    <div v-for="(doc, index) in product.customFields.techDocs.slice(0, 5)" :key="doc.id"
-                                        class="group relative w-6 h-6 flex-shrink-0 rounded bg-dark-300/50 p-0.5 transition-all hover:bg-dark-300"
-                                        :title="doc.name">
-                                        <img v-if="getFileIcon(doc.name)" :src="`/file_icons/${getFileIcon(doc.name)}`"
-                                            :alt="doc.name" class="w-full h-full object-contain" />
-                                        <img v-else :src="doc.preview || 'https://via.placeholder.com/24?text=Doc'"
-                                            :alt="doc.name" class="w-full h-full object-cover rounded" />
+                                <div class="flex items-center justify-between gap-3 mb-1">
+                                    <div class="flex items-center gap-3">
+                                        <h3 class="text-lg font-semibold text-white truncate">{{ product.name }}</h3>
+                                        <router-link :to="{ name: 'ManageVariants', params: { productId: product.id } }"
+                                            class="flex-shrink-0 px-3 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-500 transition-colors">
+                                            Manage variants
+                                        </router-link>
                                     </div>
-                                    <span v-if="product.customFields.techDocs.length > 5"
-                                        class="text-xs text-gray-400">+{{ product.customFields.techDocs.length - 5
-                                        }}</span>
-                                </div>
 
-                                <!-- <button
+
+
+                                    <!-- <button
                                     @click="toggleProductEnabled(product)"
                                     :disabled="isUpdatingEnabled[product.id]"
                                     class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
@@ -160,219 +140,307 @@
                                         :class="product.enabled ? 'translate-x-5' : 'translate-x-0'">
                                     </span>
                                 </button> -->
+                                </div>
+
+                                <div class="flex flex-row items-center gap-2">
+
+
+                                    <div class="flex-shrink-0">
+                                        <input type="checkbox" :id="`product-${product.id}`"
+                                            :checked="isSelected(product.id)" @change="toggleProductSelection(product)"
+                                            class="w-5 h-5 text-secondary focus:ring-secondary rounded transition-colors" />
+                                        <label :for="`product-${product.id}`" class="sr-only">{{ product.name }}</label>
+                                    </div>
+
+
+
+
+                                    <p class="text-sm text-gray-400">ID: {{ product.id }}</p>
+                                    <span class="text-sm text-secondary"
+                                        v-if="product.variants && product.variants.length > 0">
+                                        {{ product.variants.length }} variants
+                                    </span>
+                                    <span class="text-sm text-gray-500" v-else>
+                                        0 variants
+                                    </span>
+
+
+                                </div>
+
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    <span v-for="collection in product.collections" :key="collection.id"
+                                        class="text-xs bg-dark-300 text-gray-300 px-2 py-1 rounded-full">
+                                        {{ collection.name }}
+                                    </span>
+                                </div>
+
                             </div>
 
-                            <div class="flex flex-row items-center gap-2">
-                                <p class="text-sm text-gray-400">ID: {{ product.id }}</p>
-                                <span class="text-sm text-secondary"
-                                    v-if="product.variants && product.variants.length > 0">
-                                    {{ product.variants.length }} variants
-                                </span>
-                                <span class="text-sm text-gray-500" v-else>
-                                    0 variants
-                                </span>
+                            <div class="flex-shrink-0 w-20 h-20 overflow-hidden bg-dark-100 rounded-md">
+                                <img :src="product.featuredAsset ? `${product.featuredAsset.preview}?w=100&h=100` : 'https://via.placeholder.com/100x100?text=No+Image'"
+                                    :alt="product.name" class="w-full h-full object-cover" />
+                            </div>
 
+                        </div>
 
+                        <div class="mt-2"></div>
 
-                                <label
-                                    class="w-5 h-5 rounded-full bg-purple-600 text-white cursor-pointer flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                                    :class="{ 'opacity-50 cursor-not-allowed': uploadingProductId === product.id }"
-                                    title="Upload technical documentation">
-                                    <!-- 加载中 -->
-                                    <svg v-if="uploadingProductId === product.id" class="w-3 h-3 animate-spin"
-                                        viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <circle cx="12" cy="12" r="10" stroke-width="4" opacity="0.25"></circle>
-                                        <path
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                            fill="currentColor" opacity="0.75"></path>
-                                    </svg>
+                        <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 
-                                    <!-- 上传图标 → 完美居中 -->
-                                    <svg v-else class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M12 16V8m0 0l-4 4m4-4l4 4" />
-                                    </svg>
-
-                                    <input type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" class="hidden"
-                                        @change="handleDocUpload($event, product)"
-                                        :disabled="uploadingProductId === product.id">
-                                </label>
-
-                                <!-- 文件列表按钮 -->
-                                <button @click="showFileList(product)"
-                                    class="w-5 h-5 rounded-full bg-blue-600 text-white cursor-pointer flex items-center justify-center"
-                                    :class="{ 'opacity-50 cursor-not-allowed': !product.customFields?.techDocs?.length }"
-                                    :disabled="!product.customFields?.techDocs?.length" title="View all documents">
-                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path
-                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
+                        <!-- Product Description Section -->
+                        <div class="mt-3 w-full">
+                            <div v-if="editingProductId === product.id" class="space-y-2">
+                                <textarea v-model="editingDescription"
+                                    class="w-full px-3 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/50 transition-colors resize-vertical min-h-[80px] text-sm"
+                                    placeholder="Enter product description..."></textarea>
+                                <div class="flex gap-2">
+                                    <button @click="saveProductDescription(product)" :disabled="isUpdatingDescription"
+                                        class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                        {{ isUpdatingDescription ? 'Saving...' : 'Save' }}
+                                    </button>
+                                    <button @click="cancelEditingDescription" :disabled="isUpdatingDescription"
+                                        class="px-3 py-1 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-else class="flex items-start justify-between gap-2">
+                                <p class="text-sm text-gray-400 flex-1 line-clamp-2"
+                                    :class="{ 'text-gray-500': !getProductDescription(product) }">
+                                    {{ getProductDescription(product) || 'No description' }}
+                                </p>
+                                <button @click="startEditingDescription(product)"
+                                    class="flex-shrink-0 px-2 py-1 bg-gray-600 text-white rounded-md text-xs hover:bg-gray-500 transition-colors">
+                                    Edit
                                 </button>
-
-
-
-
-                                <span v-if="uploadSuccessProductId === product.id"
-                                    class="text-xs text-green-400">✓</span>
-                                <span v-if="uploadErrorProductId === product.id" class="text-xs text-red-400">✗</span>
                             </div>
+                        </div>
 
-                            <div class="flex flex-wrap gap-2 mt-2">
-                                <span v-for="collection in product.collections" :key="collection.id"
-                                    class="text-xs bg-dark-300 text-gray-300 px-2 py-1 rounded-full">
-                                    {{ collection.name }}
-                                </span>
-                            </div>
+                        <div class="mt-2"></div>
 
-                            <!-- Product Description Section -->
-                            <div class="mt-3">
-                                <div v-if="editingProductId === product.id" class="space-y-2">
-                                    <textarea v-model="editingDescription"
-                                        class="w-full px-3 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/50 transition-colors resize-vertical min-h-[80px] text-sm"
-                                        placeholder="Enter product description..."></textarea>
-                                    <div class="flex gap-2">
-                                        <button @click="saveProductDescription(product)"
-                                            :disabled="isUpdatingDescription"
-                                            class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                            {{ isUpdatingDescription ? 'Saving...' : 'Save' }}
-                                        </button>
-                                        <button @click="cancelEditingDescription" :disabled="isUpdatingDescription"
-                                            class="px-3 py-1 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                            Cancel
-                                        </button>
+                        <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+
+                        <!-- Product Facets Section -->
+                        <div class="mt-3 w-full">
+                            <div v-if="editingFacetsProductId === product.id" class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-semibold text-blue-300">Facets</span>
+                                    <button @click="cancelEditingFacets" :disabled="isUpdatingFacets"
+                                        class="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-500 transition-colors disabled:opacity-50">
+                                        Done
+                                    </button>
+                                </div>
+                                <div class="space-y-3">
+                                    <div v-for="facet in facets" :key="facet.id" class="space-y-2">
+                                        <span class="text-xs text-gray-400 font-medium">{{ facet.name }}</span>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button v-for="value in facet.values" :key="value.id"
+                                                @click="toggleProductFacet(product, value, !isFacetValueSelected(product, value))"
+                                                :disabled="isUpdatingFacets"
+                                                class="px-3 py-1 text-xs rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                :class="isFacetValueSelected(product, value) ? 'bg-blue-600 text-white' : 'bg-dark-300 text-gray-300 hover:bg-dark-200'">
+                                                {{ value.name }}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div v-else class="flex items-start justify-between gap-2">
-                                    <p class="text-sm text-gray-400 flex-1 line-clamp-2"
-                                        :class="{ 'text-gray-500': !getProductDescription(product) }">
-                                        {{ getProductDescription(product) || 'No description' }}
-                                    </p>
-                                    <button @click="startEditingDescription(product)"
+                            </div>
+                            <div v-else>
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="flex flex-wrap gap-2 flex-1">
+                                        <span v-for="facetValue in product.facetValues" :key="facetValue.id"
+                                            class="text-xs bg-dark-300 text-gray-300 px-2 py-1 rounded-full">
+                                            {{ facetValue.name }} <span class="text-gray-500">in</span> {{
+                                                facetValue.facet.name }}
+                                        </span>
+                                        <span v-if="!product.facetValues || product.facetValues.length === 0"
+                                            class="text-xs text-gray-500">
+                                            No facets
+                                        </span>
+                                    </div>
+                                    <button @click="startEditingFacets(product)"
                                         class="flex-shrink-0 px-2 py-1 bg-gray-600 text-white rounded-md text-xs hover:bg-gray-500 transition-colors">
                                         Edit
                                     </button>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Product Facets Section -->
-                            <div class="mt-4">
-                                <div v-if="editingFacetsProductId === product.id" class="space-y-3">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm font-semibold text-blue-300">Facets</span>
-                                        <button @click="cancelEditingFacets" :disabled="isUpdatingFacets"
-                                            class="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-500 transition-colors disabled:opacity-50">
-                                            Done
-                                        </button>
-                                    </div>
-                                    <div class="space-y-3">
-                                        <div v-for="facet in facets" :key="facet.id" class="space-y-2">
-                                            <span class="text-xs text-gray-400 font-medium">{{ facet.name }}</span>
-                                            <div class="flex flex-wrap gap-2">
-                                                <button v-for="value in facet.values" :key="value.id"
-                                                    @click="toggleProductFacet(product, value, !isFacetValueSelected(product, value))"
-                                                    :disabled="isUpdatingFacets"
-                                                    class="px-3 py-1 text-xs rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    :class="isFacetValueSelected(product, value) ? 'bg-blue-600 text-white' : 'bg-dark-300 text-gray-300 hover:bg-dark-200'">
-                                                    {{ value.name }}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else>
-                                    <div class="flex items-center justify-between gap-2">
-                                        <div class="flex flex-wrap gap-2 flex-1">
-                                            <span v-for="facetValue in product.facetValues" :key="facetValue.id"
-                                                class="text-xs bg-dark-300 text-gray-300 px-2 py-1 rounded-full">
-                                                {{ facetValue.name }} <span class="text-gray-500">in</span> {{
-                                                    facetValue.facet.name }}
-                                            </span>
-                                            <span v-if="!product.facetValues || product.facetValues.length === 0"
-                                                class="text-xs text-gray-500">
-                                                No facets
-                                            </span>
-                                        </div>
-                                        <button @click="startEditingFacets(product)"
-                                            class="flex-shrink-0 px-2 py-1 bg-gray-600 text-white rounded-md text-xs hover:bg-gray-500 transition-colors">
-                                            Edit
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="mt-2"></div>
+                        <div class="mt-2"></div>
+                        <div class="mt-2"></div>
+
+                        <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+
+                        <div class="flex flex-row justify-between mx-10 gap-20">
 
                             <!-- Product Assets Section -->
                             <div class="mt-4">
-                                <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center justify-start gap-2 mb-2">
                                     <span class="text-sm font-semibold text-blue-300">Assets</span>
-                                    <button @click="openAssetSelector(product, 'add')"
-                                        :disabled="isUpdatingAssets"
+                                    <button @click="openAssetSelector(product, 'add')" :disabled="isUpdatingAssets"
                                         class="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                         </svg>
                                         Add
                                     </button>
                                 </div>
-                                
+
                                 <div class="flex flex-wrap gap-2">
                                     <template v-for="asset in product.assets" :key="asset.id">
                                         <div class="group relative w-12 h-12 flex-shrink-0 rounded-md bg-dark-300"
-                                        :class="{ 'border-2 border-green-500': product.featuredAsset?.id === asset.id }">
+                                            :class="{ 'border-2 border-green-500': product.featuredAsset?.id === asset.id }">
                                             <img :src="asset.preview || 'https://via.placeholder.com/48?text=Asset'"
                                                 :alt="asset.name" class="w-full h-full object-cover" />
-                                            
+
                                             <!-- Featured star icon -->
                                             <div v-if="product.featuredAsset?.id === asset.id"
                                                 class="absolute top-1 right-1 z-10">
                                                 <span class="text-xs text-green-400">
                                                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                                                        <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                                        <path
+                                                            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                                     </svg>
                                                 </span>
                                             </div>
-                                            
+
                                             <!-- Hover overlay -->
                                             <div
                                                 class="absolute inset-0 bg-dark-400/80 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-1">
                                                 <a :href="asset.source" target="_blank"
                                                     class="w-5 h-5 rounded-md bg-dark-100 text-gray-300 hover:text-blue-400 hover:bg-blue-900/50 flex items-center justify-center"
                                                     @click.stop>
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
                                                 </a>
-                                                <button 
-                                                    @click.stop="toggleAssetMenu(product.id, asset.id)"
+                                                <button @click.stop="toggleAssetMenu(product.id, asset.id)"
                                                     :ref="(el) => { if (el) menuRefs[`${product.id}-${asset.id}`] = el }"
                                                     data-asset-menu="true"
                                                     class="w-5 h-5 rounded-md bg-dark-100 text-gray-300 hover:text-blue-400 hover:bg-blue-900/50 flex items-center justify-center">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
                                                     </svg>
                                                 </button>
                                             </div>
                                         </div>
                                     </template>
-                                    
+
                                     <span v-if="!product.assets || product.assets.length === 0"
                                         class="text-xs text-gray-500 py-2">
                                         No assets
                                     </span>
                                 </div>
                             </div>
+
+                            <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+
+                            <!-- 技术文档 Section -->
+                            <div class="mt-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div>
+                                        <span class="text-sm font-semibold text-blue-300">技术文档</span>
+                                    </div>
+
+                                    <div class="flex items-center justify-start ml-2 gap-2">
+
+                                        <div><label
+                                                class="w-5 h-5 rounded-full bg-purple-600 text-white cursor-pointer flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                                :class="{ 'opacity-50 cursor-not-allowed': uploadingProductId === product.id }"
+                                                title="Upload technical documentation">
+                                                <!-- 加载中 -->
+                                                <svg v-if="uploadingProductId === product.id"
+                                                    class="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor">
+                                                    <circle cx="12" cy="12" r="10" stroke-width="4" opacity="0.25">
+                                                    </circle>
+                                                    <path
+                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                        fill="currentColor" opacity="0.75"></path>
+                                                </svg>
+
+                                                <!-- 上传图标 → 完美居中 -->
+                                                <svg v-else class="w-3 h-3" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                    stroke-linejoin="round">
+                                                    <path d="M12 16V8m0 0l-4 4m4-4l4 4" />
+                                                </svg>
+
+                                                <input type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                                                    class="hidden" @change="handleDocUpload($event, product)"
+                                                    :disabled="uploadingProductId === product.id">
+                                            </label>
+                                        </div>
+
+                                        <!-- 文件列表按钮 -->
+                                        <div>
+                                            <button @click="showFileList(product)"
+                                                class="w-5 h-5 rounded-full bg-blue-600 text-white cursor-pointer flex items-center justify-center"
+                                                :class="{ 'opacity-50 cursor-not-allowed': !product.customFields?.techDocs?.length }"
+                                                :disabled="!product.customFields?.techDocs?.length"
+                                                title="View all documents">
+                                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                    stroke-linejoin="round">
+                                                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <span v-if="uploadSuccessProductId === product.id"
+                                            class="text-xs text-green-400">✓</span>
+                                        <span v-if="uploadErrorProductId === product.id"
+                                            class="text-xs text-red-400">✗</span>
+
+                                    </div>
+
+
+                                </div>
+
+                                <!-- File Icons next to product name -->
+                                <div v-if="product.customFields?.techDocs?.length > 0" class="flex flex-wrap gap-2">
+                                    <div v-for="(doc, index) in product.customFields.techDocs.slice(0, 5)" :key="doc.id"
+                                        class="group relative w-12 h-12 flex-shrink-0 rounded-md bg-dark-300 transition-all hover:bg-dark-200"
+                                        :title="doc.name">
+                                        <img v-if="getFileIcon(doc.name)" :src="`/file_icons/${getFileIcon(doc.name)}`"
+                                            :alt="doc.name" class="w-full h-full object-contain" />
+                                        <img v-else :src="doc.preview || 'https://via.placeholder.com/48?text=Doc'"
+                                            :alt="doc.name" class="w-full h-full object-cover rounded-md" />
+                                    </div>
+                                    <span v-if="product.customFields.techDocs.length > 5"
+                                        class="text-xs text-gray-400">+{{
+                                            product.customFields.techDocs.length - 5
+                                        }}</span>
+                                </div>
+                            </div>
+
                         </div>
+
+                        <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
                     </div>
-
-
+                    <!-- ### -->
 
 
 
 
                 </div>
+
             </div>
+
+
+
         </div>
 
         <div v-else class="text-center py-10 text-gray-400">
@@ -489,27 +557,30 @@
     <!-- Asset Context Menu (Teleported to body to avoid overflow issues) -->
     <Teleport to="body">
         <Transition name="fade">
-            <div v-if="showAssetMenu"
-                data-asset-menu="true"
+            <div v-if="showAssetMenu" data-asset-menu="true"
                 class="fixed z-50 min-w-32 rounded-md bg-dark-800 border border-dark-600 shadow-lg overflow-hidden"
                 :style="{ left: `${menuPosition.x}px`, top: `${menuPosition.y}px` }">
                 <div class="py-1">
                     <!-- Find the current product and asset to render menu correctly -->
                     <template v-for="product in products" :key="product.id">
                         <template v-for="asset in product.assets" :key="asset.id">
-                            <template v-if="showAssetMenu.productId === product.id && showAssetMenu.assetId === asset.id">
+                            <template
+                                v-if="showAssetMenu.productId === product.id && showAssetMenu.assetId === asset.id">
                                 <button v-if="product.featuredAsset?.id !== asset.id"
                                     @click.stop="setFeaturedAsset(product, asset.id)"
                                     class="w-full px-3 py-1.5 text-xs text-left text-gray-300 hover:bg-dark-600 flex items-center gap-2">
-                                    <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                    <svg class="w-3 h-3 text-green-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                     </svg>
                                     Set as Featured
                                 </button>
                                 <button @click.stop="removeAsset(product, asset.id)"
                                     class="w-full px-3 py-1.5 text-xs text-left text-red-400 hover:bg-dark-600 flex items-center gap-2">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                     Remove
                                 </button>
@@ -524,16 +595,13 @@
     <!-- Asset Selector Modal -->
     <Teleport to="body">
         <Transition name="modal">
-            <AssetSelector
-                v-if="showAssetSelector"
+            <AssetSelector v-if="showAssetSelector"
                 :title="assetSelectorMode === 'add' ? 'Select Assets' : 'Set Featured Asset'"
-                :modelValue="tempSelectedAssetIds"
-                :selectMultiple="assetSelectorMode === 'add'"
-                @confirm="updateProductAssets"
-                @close="closeAssetSelector"
-            />
+                :modelValue="tempSelectedAssetIds" :selectMultiple="assetSelectorMode === 'add'"
+                @confirm="updateProductAssets" @close="closeAssetSelector" />
         </Transition>
     </Teleport>
+
 </template>
 
 <script setup>
@@ -1398,13 +1466,13 @@ const toggleProductEnabled = async (product) => {
 const openAssetSelector = (product, mode) => {
     assetSelectorProduct.value = product
     assetSelectorMode.value = mode
-    
+
     if (mode === 'add') {
         tempSelectedAssetIds.value = product.assets?.map(a => a.id) || []
     } else if (mode === 'featured') {
         tempSelectedAssetIds.value = product.featuredAsset?.id || ''
     }
-    
+
     showAssetSelector.value = true
 }
 
@@ -1419,9 +1487,9 @@ const updateProductAssets = async (selectedIds) => {
     // 先保存引用，防止中途被清空
     const product = assetSelectorProduct.value
     const mode = assetSelectorMode.value
-    
+
     if (!product) return
-    
+
     isUpdatingAssets.value = true
     try {
         let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
@@ -1432,7 +1500,7 @@ const updateProductAssets = async (selectedIds) => {
         }
 
         apolloClient = createApolloClient(authStore.token, channelToken)
-        
+
         const UPDATE_PRODUCT_ASSETS_MUTATION = gql`
             mutation UpdateProductAssets($input: UpdateProductInput!) {
                 updateProduct(input: $input) {
@@ -1442,9 +1510,9 @@ const updateProductAssets = async (selectedIds) => {
                 }
             }
         `
-        
+
         let mutationInput = { id: product.id }
-        
+
         if (mode === 'add') {
             mutationInput.assetIds = selectedIds
         } else if (mode === 'featured') {
@@ -1457,7 +1525,7 @@ const updateProductAssets = async (selectedIds) => {
                 input: mutationInput
             }
         })
-        
+
         if (result.data?.updateProduct) {
             const allProductIndex = allProducts.value.findIndex(p => p.id === product.id)
             if (allProductIndex !== -1) {
@@ -1470,7 +1538,7 @@ const updateProductAssets = async (selectedIds) => {
                 products.value[productIndex].featuredAsset = result.data.updateProduct.featuredAsset
             }
         }
-        
+
         closeAssetSelector()
     } catch (err) {
         console.error('Error updating product assets:', err)
@@ -1491,7 +1559,7 @@ const removeAsset = async (product, assetId) => {
         }
 
         apolloClient = createApolloClient(authStore.token, channelToken)
-        
+
         const UPDATE_PRODUCT_ASSETS_MUTATION = gql`
             mutation UpdateProductAssets($input: UpdateProductInput!) {
                 updateProduct(input: $input) {
@@ -1501,16 +1569,16 @@ const removeAsset = async (product, assetId) => {
                 }
             }
         `
-        
+
         const currentAssetIds = product.assets?.map(a => a.id) || []
         const newAssetIds = currentAssetIds.filter(id => id !== assetId)
-        
+
         // 如果删除的是特色资产，也要清除特色资产
-        let mutationInput = { 
-            id: product.id, 
-            assetIds: newAssetIds 
+        let mutationInput = {
+            id: product.id,
+            assetIds: newAssetIds
         }
-        
+
         if (product.featuredAsset?.id === assetId) {
             mutationInput.featuredAssetId = null
         }
@@ -1521,7 +1589,7 @@ const removeAsset = async (product, assetId) => {
                 input: mutationInput
             }
         })
-        
+
         if (result.data?.updateProduct) {
             const allProductIndex = allProducts.value.findIndex(p => p.id === product.id)
             if (allProductIndex !== -1) {
@@ -1553,7 +1621,7 @@ const setFeaturedAsset = async (product, assetId) => {
         }
 
         apolloClient = createApolloClient(authStore.token, channelToken)
-        
+
         const UPDATE_PRODUCT_ASSETS_MUTATION = gql`
             mutation UpdateProductAssets($input: UpdateProductInput!) {
                 updateProduct(input: $input) {
@@ -1563,17 +1631,17 @@ const setFeaturedAsset = async (product, assetId) => {
                 }
             }
         `
-        
+
         const result = await apolloClient.mutate({
             mutation: UPDATE_PRODUCT_ASSETS_MUTATION,
             variables: {
-                input: { 
-                    id: product.id, 
-                    featuredAssetId: assetId 
+                input: {
+                    id: product.id,
+                    featuredAssetId: assetId
                 }
             }
         })
-        
+
         if (result.data?.updateProduct) {
             const allProductIndex = allProducts.value.findIndex(p => p.id === product.id)
             if (allProductIndex !== -1) {
@@ -1671,14 +1739,14 @@ const isFacetValueSelected = (product, facetValue) => {
     return (product.facetValues || []).some(fv => fv.id === facetValue.id)
 }
 
-onMounted(() => { 
+onMounted(() => {
     fetchProducts()
     document.addEventListener('click', handleClickOutside)
 })
 const unwatchToken = watch(() => authStore.token, () => { fetchProducts() })
 const unwatchChannel = watch(() => selectedChannel.value, () => { fetchProducts() })
-onUnmounted(() => { 
-    unwatchToken(); 
+onUnmounted(() => {
+    unwatchToken();
     unwatchChannel()
     document.removeEventListener('click', handleClickOutside)
 })
