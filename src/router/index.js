@@ -8,6 +8,7 @@ const ChannelClone = () => import('../pages/ChannelClone.vue')
 const ImportPage = () => import('../pages/ImportPage.vue')
 const ImportProductPage = () => import('../pages/ImportProductPage.vue')
 const I18nZhPage = () => import('../pages/I18nZhPage.vue')
+const ManageVariants = () => import('../pages/ManageVariants.vue')
 const LoginPage = () => import('../pages/LoginPage.vue')
 
 const routes = [
@@ -55,6 +56,14 @@ const routes = [
     path: '/i18n/zh',
     name: 'I18nZh',
     component: I18nZhPage,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/products/:productId/variants',
+    name: 'ManageVariants',
+    component: ManageVariants,
     meta: {
       requiresAuth: true
     }

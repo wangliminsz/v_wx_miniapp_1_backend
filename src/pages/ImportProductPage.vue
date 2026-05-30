@@ -280,8 +280,8 @@ const optionMap = ref(new Map()) // (groupCode:optionCode) -> optionId
 // Variant import state
 const isImportingVariants = ref(false)
 
-// Create Apollo Client with token
-const createApolloClient = (authToken) => {
+// Create Apollo Client with token and channel token
+const createApolloClient = (authToken, channelToken = null) => {
   const httpLink = createHttpLink({
     uri: import.meta.env.VITE_VENDURE_ADMIN_API_URL,
     fetchOptions: {
@@ -290,12 +290,14 @@ const createApolloClient = (authToken) => {
   })
 
   const authLink = setContext((_, { headers }) => {
-    return {
-      headers: {
-        ...headers,
-        authorization: authToken ? `Bearer ${authToken}` : '',
-      }
+    const requestHeaders = {
+      ...headers,
+      authorization: authToken ? `Bearer ${authToken}` : '',
     }
+    if (channelToken) {
+      requestHeaders['vendure-token'] = channelToken
+    }
+    return { headers: requestHeaders }
   })
 
   return new ApolloClient({
@@ -795,7 +797,7 @@ const fetchCollections = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_ALL_COLLECTIONS_QUERY,
       fetchPolicy: 'network-only'
@@ -825,7 +827,7 @@ const fetchFacetValues = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_ALL_FACET_VALUES_QUERY,
       fetchPolicy: 'network-only'
@@ -856,7 +858,7 @@ const fetchOptionGroups = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_ALL_OPTION_GROUPS_QUERY,
       fetchPolicy: 'network-only'
@@ -895,7 +897,7 @@ const fetchOptions = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_ALL_OPTIONS_QUERY,
       fetchPolicy: 'network-only'
@@ -946,7 +948,7 @@ const generateAssetsMap = async () => {
   try {
     console.log('Generating assets map...')
     
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const allAssets = []
     let skip = 0
     const take = 1000
@@ -1096,7 +1098,7 @@ const importProducts = async () => {
     // Refresh facet values map to ensure we have the latest data
     await fetchFacetValues()
     
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     let successCount = 0
     let errorCount = 0
     const errors = []
@@ -1435,7 +1437,7 @@ const importVariants = async () => {
     // Refresh facet values map to ensure we have the latest data
     await fetchFacetValues()
     
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     let successCount = 0
     let errorCount = 0
     const errors = []
@@ -1765,7 +1767,7 @@ const importFacets = async () => {
     
     console.log('Starting facet import for', records.length, 'records')
     
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     let successCount = 0
     let errorCount = 0
     const errors = []
@@ -1972,7 +1974,7 @@ const importCollections = async () => {
       throw new Error('No valid records found in CSV file')
     }
     
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     let successCount = 0
     let errorCount = 0
     const errors = []
@@ -2345,7 +2347,7 @@ const importCollectionAssets = async () => {
       throw new Error('No valid records found in CSV file')
     }
     
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     let successCount = 0
     let errorCount = 0
     const errors = []

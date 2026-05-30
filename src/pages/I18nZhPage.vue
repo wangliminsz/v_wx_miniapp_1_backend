@@ -539,8 +539,8 @@ const autoDismissError = () => {
 watch(successMessage, autoDismissSuccess)
 watch(error, autoDismissError)
 
-// Create Apollo Client with token
-const createApolloClient = (authToken) => {
+// Create Apollo Client with token and channel token
+const createApolloClient = (authToken, channelToken = null) => {
   // 从环境变量中获取 API 地址，同时设置默认值防止环境变量未定义
   const apiUrl = import.meta.env.VITE_VENDURE_ADMIN_API_URL 
   const httpLink = createHttpLink({
@@ -551,12 +551,14 @@ const createApolloClient = (authToken) => {
   })
 
   const authLink = setContext((_, { headers }) => {
-    return {
-      headers: {
-        ...headers,
-        authorization: authToken ? `Bearer ${authToken}` : '',
-      }
+    const requestHeaders = {
+      ...headers,
+      authorization: authToken ? `Bearer ${authToken}` : '',
     }
+    if (channelToken) {
+      requestHeaders['vendure-token'] = channelToken
+    }
+    return { headers: requestHeaders }
   })
 
   return new ApolloClient({
@@ -837,7 +839,7 @@ const fetchCollections = async () => {
   error.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_COLLECTIONS_QUERY,
       fetchPolicy: 'network-only'
@@ -999,7 +1001,7 @@ const updateCollection = async (collection) => {
   successMessage.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
 
     const result = await apolloClient.mutate({
       mutation: UPDATE_COLLECTION_MUTATION,
@@ -1032,7 +1034,7 @@ const fetchFacets = async () => {
   error.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_FACETS_QUERY,
       fetchPolicy: 'network-only'
@@ -1146,7 +1148,7 @@ const updateFacet = async (facet) => {
   successMessage.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
 
     const result = await apolloClient.mutate({
       mutation: UPDATE_FACET_MUTATION,
@@ -1178,7 +1180,7 @@ const updateFacetValue = async (facetValue) => {
   successMessage.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
 
     const result = await apolloClient.mutate({
       mutation: UPDATE_FACET_VALUE_MUTATION,
@@ -1214,7 +1216,7 @@ const fetchProductOptionGroups = async () => {
   error.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_PRODUCT_OPTION_GROUPS_QUERY,
       fetchPolicy: 'network-only'
@@ -1301,7 +1303,7 @@ const updateProductOptionGroup = async (group) => {
   successMessage.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
 
     const result = await apolloClient.mutate({
       mutation: UPDATE_PRODUCT_OPTION_GROUP_MUTATION,
@@ -1362,7 +1364,7 @@ const updateProductOption = async (option) => {
   successMessage.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
 
     const result = await apolloClient.mutate({
       mutation: UPDATE_PRODUCT_OPTION_MUTATION,
@@ -1398,7 +1400,7 @@ const fetchProducts = async () => {
   error.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_PRODUCTS_QUERY,
       fetchPolicy: 'network-only'
@@ -1445,7 +1447,7 @@ const fetchProductVariants = async () => {
   error.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_PRODUCT_VARIANTS_QUERY,
       fetchPolicy: 'network-only'
@@ -1546,7 +1548,7 @@ const updateProduct = async (product) => {
   successMessage.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
 
     const result = await apolloClient.mutate({
       mutation: UPDATE_PRODUCT_MUTATION,
@@ -1620,7 +1622,7 @@ const updateProductVariant = async (variant) => {
   successMessage.value = ''
 
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
 
     const result = await apolloClient.mutate({
       mutation: UPDATE_PRODUCT_VARIANT_MUTATION,

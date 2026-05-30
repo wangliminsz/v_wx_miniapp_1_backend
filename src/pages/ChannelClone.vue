@@ -401,8 +401,8 @@ const isUpdatingStockLevels = ref(false)
 const isPriceFactorModalVisible = ref(false)
 const priceFactorValue = ref(1)
 
-// Create Apollo Client with token
-const createApolloClient = (authToken) => {
+// Create Apollo Client with token and channel token
+const createApolloClient = (authToken, channelToken = null) => {
   const httpLink = createHttpLink({
     uri: import.meta.env.VITE_VENDURE_ADMIN_API_URL,
     fetchOptions: {
@@ -411,12 +411,14 @@ const createApolloClient = (authToken) => {
   })
 
   const authLink = setContext((_, { headers }) => {
-    return {
-      headers: {
-        ...headers,
-        authorization: authToken ? `Bearer ${authToken}` : '',
-      }
+    const requestHeaders = {
+      ...headers,
+      authorization: authToken ? `Bearer ${authToken}` : '',
     }
+    if (channelToken) {
+      requestHeaders['vendure-token'] = channelToken
+    }
+    return { headers: requestHeaders }
   })
 
   return new ApolloClient({
@@ -633,7 +635,7 @@ const fetchChannels = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_CHANNELS_QUERY,
       fetchPolicy: 'network-only'
@@ -659,7 +661,7 @@ const fetchCollections = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_COLLECTIONS_QUERY,
       fetchPolicy: 'network-only'
@@ -684,7 +686,7 @@ const fetchFacets = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_FACETS_QUERY,
       variables: {
@@ -715,7 +717,7 @@ const fetchShippingMethods = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_SHIPPING_METHODS_QUERY,
       variables: {
@@ -746,7 +748,7 @@ const fetchPaymentMethods = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_PAYMENT_METHODS_QUERY,
       variables: {
@@ -777,7 +779,7 @@ const fetchAllProducts = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_ALL_PRODUCTS_QUERY,
       fetchPolicy: 'network-only'
@@ -802,7 +804,7 @@ const fetchStockLocations = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_ALL_STOCK_LOCATIONS_QUERY,
       variables: {
@@ -833,7 +835,7 @@ const fetchAllProductVariants = async () => {
   error.value = ''
   
   try {
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.query({
       query: GET_ALL_PRODUCT_VARIANTS_QUERY,
       variables: {
@@ -890,7 +892,7 @@ const copyCollections = async () => {
     console.log('Found', collectionIds.length, 'collections to copy:', collectionIds)
     
     // Step 3: Assign collections to destination channel
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.mutate({
       mutation: ASSIGN_COLLECTIONS_MUTATION,
       variables: {
@@ -946,7 +948,7 @@ const copyFacets = async () => {
     console.log('Found', facetIds.length, 'facets to copy:', facetIds)
     
     // Step 3: Assign facets to destination channel
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.mutate({
       mutation: ASSIGN_FACETS_MUTATION,
       variables: {
@@ -1002,7 +1004,7 @@ const copyShippingMethods = async () => {
     console.log('Found', shippingMethodIds.length, 'shipping methods to copy:', shippingMethodIds)
     
     // Step 3: Assign shipping methods to destination channel
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.mutate({
       mutation: ASSIGN_SHIPPING_METHODS_MUTATION,
       variables: {
@@ -1058,7 +1060,7 @@ const copyPaymentMethods = async () => {
     console.log('Found', paymentMethodIds.length, 'payment methods to copy:', paymentMethodIds)
     
     // Step 3: Assign payment methods to destination channel
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.mutate({
       mutation: ASSIGN_PAYMENT_METHODS_MUTATION,
       variables: {
@@ -1141,7 +1143,7 @@ const copyAllProductsWithPriceFactor = async () => {
     console.log('Found', productIds.length, 'products to copy:', productIds)
     
     // Step 3: Assign products to destination channel with price factor
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.mutate({
       mutation: ASSIGN_PRODUCTS_MUTATION,
       variables: {
@@ -1186,7 +1188,7 @@ const createStockLocation = async () => {
     console.log('Creating new stock location:', newStockLocationName.value)
     
     // Create the stock location
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.mutate({
       mutation: CREATE_STOCK_LOCATION_MUTATION,
       variables: {
@@ -1234,7 +1236,7 @@ const assignStockLocationToChannel = async () => {
     console.log('Assigning stock location:', selectedStockLocationForAssignment.value.id, 'to channel:', selectedChannelForAssignment.value.id)
     
     // Assign the stock location to the channel
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.mutate({
       mutation: ASSIGN_STOCK_LOCATIONS_TO_CHANNEL_MUTATION,
       variables: {
@@ -1308,7 +1310,7 @@ const setStockLevelInBulk = async () => {
     console.log('Prepared input for', inputArray.length, 'variants')
     
     // Step 3: Update stock levels for all variants
-    const apolloClient = createApolloClient(authStore.token)
+    const apolloClient = createApolloClient(authStore.token, import.meta.env.VITE_CHANNEL_TOKEN || null)
     const result = await apolloClient.mutate({
       mutation: UPDATE_VARIANT_STOCK_MUTATION,
       variables: {

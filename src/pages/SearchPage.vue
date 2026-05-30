@@ -73,6 +73,40 @@
                 {{ facet.name }}
               </span>
             </div>
+            
+            <!-- Product Description Section -->
+            <div class="mt-3">
+              <div v-if="editingProductId === product.productId" class="space-y-2">
+                <textarea
+                  v-model="editingDescription"
+                  class="w-full px-3 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/50 transition-colors resize-vertical min-h-[80px] text-sm"
+                  placeholder="Enter product description..."></textarea>
+                <div class="flex gap-2">
+                  <button
+                    @click="saveProductDescription(product)"
+                    :disabled="isUpdatingDescription"
+                    class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    {{ isUpdatingDescription ? 'Saving...' : 'Save' }}
+                  </button>
+                  <button
+                    @click="cancelEditingDescription"
+                    :disabled="isUpdatingDescription"
+                    class="px-3 py-1 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+              <div v-else class="flex items-start justify-between gap-2">
+                <p class="text-sm text-gray-400 flex-1 line-clamp-2" :class="{ 'text-gray-500': !getProductDescription(product) }">
+                  {{ getProductDescription(product) || 'No description' }}
+                </p>
+                <button
+                  @click="startEditingDescription(product)"
+                  class="flex-shrink-0 px-2 py-1 bg-gray-600 text-white rounded-md text-xs hover:bg-gray-500 transition-colors">
+                  Edit
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -155,6 +189,40 @@
                   class="text-xs bg-dark-300 text-gray-300 px-2 py-1 rounded-full">
                   {{ facet.name }}
                 </span>
+              </div>
+              
+              <!-- Product Description Section -->
+              <div class="mt-3">
+                <div v-if="editingProductId === product.productId" class="space-y-2">
+                  <textarea
+                    v-model="editingDescription"
+                    class="w-full px-3 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/50 transition-colors resize-vertical min-h-[80px] text-sm"
+                    placeholder="Enter product description..."></textarea>
+                  <div class="flex gap-2">
+                    <button
+                      @click="saveProductDescription(product)"
+                      :disabled="isUpdatingDescription"
+                      class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      {{ isUpdatingDescription ? 'Saving...' : 'Save' }}
+                    </button>
+                    <button
+                      @click="cancelEditingDescription"
+                      :disabled="isUpdatingDescription"
+                      class="px-3 py-1 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+                <div v-else class="flex items-start justify-between gap-2">
+                  <p class="text-sm text-gray-400 flex-1 line-clamp-2" :class="{ 'text-gray-500': !getProductDescription(product) }">
+                    {{ getProductDescription(product) || 'No description' }}
+                  </p>
+                  <button
+                    @click="startEditingDescription(product)"
+                    class="flex-shrink-0 px-2 py-1 bg-gray-600 text-white rounded-md text-xs hover:bg-gray-500 transition-colors">
+                    Edit
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -327,6 +395,11 @@ const uploadingProductId = ref(null)
 const uploadSuccessProductId = ref(null)
 const uploadErrorProductId = ref(null)
 
+// Description editing state
+const editingProductId = ref(null)
+const editingDescription = ref('')
+const isUpdatingDescription = ref(false)
+
 // File list modal state
 const showFileListModal = ref(false)
 const currentProductDocs = ref([])
@@ -450,6 +523,21 @@ const SEARCH_QUERY = gql`
   }
 `
 
+const UPDATE_PRODUCT_MUTATION = gql`
+  mutation UpdateProduct($input: UpdateProductInput!) {
+    updateProduct(input: $input) {
+      id
+      name
+      translations {
+        id
+        languageCode
+        name
+        description
+      }
+    }
+  }
+`
+
 const GET_PRODUCT_TECH_DOCS_QUERY = gql`
   query GetProductTechDocs($id: ID!) {
     product(id: $id) {
@@ -461,8 +549,8 @@ const GET_PRODUCT_TECH_DOCS_QUERY = gql`
   }
 `
 
-// Create Apollo Client with token
-const createApolloClient = () => {
+// Create Apollo Client with token and channel token
+const createApolloClient = (channelToken = null) => {
   const httpLink = createHttpLink({
     uri: import.meta.env.VITE_VENDURE_ADMIN_API_URL,
     fetchOptions: {
@@ -471,12 +559,14 @@ const createApolloClient = () => {
   })
 
   const authLink = setContext((_, { headers }) => {
-    return {
-      headers: {
-        ...headers,
-        authorization: authStore.token ? `Bearer ${authStore.token}` : '',
-      }
+    const requestHeaders = {
+      ...headers,
+      authorization: authStore.token ? `Bearer ${authStore.token}` : '',
     }
+    if (channelToken) {
+      requestHeaders['vendure-token'] = channelToken
+    }
+    return { headers: requestHeaders }
   })
 
   return new ApolloClient({
@@ -496,7 +586,9 @@ const performSearch = async () => {
   hasSearched.value = true
 
   try {
-    const apolloClient = createApolloClient()
+    // Use VITE_CHANNEL_TOKEN from env if available, otherwise use active channel from auth store
+    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
+    const apolloClient = createApolloClient(channelToken)
 
     const result = await apolloClient.query({
       query: SEARCH_QUERY,
@@ -517,7 +609,7 @@ const performSearch = async () => {
         const productsWithTechDocs = await Promise.all(
           searchItems.map(async (product) => {
             try {
-              const apolloClient = createApolloClient()
+              const apolloClient = createApolloClient(channelToken)
               const techDocsResult = await apolloClient.query({
                 query: GET_PRODUCT_TECH_DOCS_QUERY,
                 variables: { id: product.productId },
@@ -556,7 +648,7 @@ const performSearch = async () => {
   }
 }
 
-const uploadFile = async (file) => {
+const uploadFile = async (file, channelToken = null) => {
   try {
     const formData = new FormData()
     const operations = {
@@ -576,6 +668,9 @@ const uploadFile = async (file) => {
     if (authStore.token) {
       headers['Authorization'] = `Bearer ${authStore.token}`
     }
+    if (channelToken) {
+      headers['vendure-token'] = channelToken
+    }
 
     const apiUrl = import.meta.env.VITE_VENDURE_ADMIN_API_URL
     const response = await fetch(apiUrl, { method: 'POST', headers, body: formData })
@@ -594,10 +689,10 @@ const uploadFile = async (file) => {
   }
 }
 
-const updateProductTechDocs = async (productId, assetIds) => {
+const updateProductTechDocs = async (productId, assetIds, channelToken = null) => {
   try {
-    const apolloClient = createApolloClient()
-    const UPDATE_PRODUCT_MUTATION = gql`
+    const apolloClient = createApolloClient(channelToken)
+    const UPDATE_PRODUCT_DOCS_MUTATION = gql`
       mutation UpdateProductDocs($input: UpdateProductInput!) {
         updateProduct(input: $input) {
           id
@@ -608,7 +703,7 @@ const updateProductTechDocs = async (productId, assetIds) => {
       }
     `
     const result = await apolloClient.mutate({
-      mutation: UPDATE_PRODUCT_MUTATION,
+      mutation: UPDATE_PRODUCT_DOCS_MUTATION,
       variables: {
         input: { id: productId, customFields: { techDocsIds: assetIds } }
       }
@@ -629,7 +724,9 @@ const handleDocUpload = async (event, product) => {
   uploadErrorProductId.value = null
 
   try {
-    const asset = await uploadFile(file)
+    // Get channel token
+    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
+    const asset = await uploadFile(file, channelToken)
     if (asset && asset.id) {
       // Gather pure asset IDs
       const existingDocIds = product.customFields?.techDocs?.map(doc => doc.id) || []
@@ -637,7 +734,7 @@ const handleDocUpload = async (event, product) => {
 
       console.log("1 --> updatedDocIds -->", updatedDocIds)
 
-      const updatedProduct = await updateProductTechDocs(product.productId, updatedDocIds)
+      const updatedProduct = await updateProductTechDocs(product.productId, updatedDocIds, channelToken)
 
       console.log("2 --> updatedProduct-->", updatedProduct)
 
@@ -690,6 +787,67 @@ const cancelDelete = () => {
   deleteDocId.value = null
 }
 
+// Product description editing functions
+const getProductDescription = (product) => {
+  // For search results, we may already have description field
+  if (product.description) {
+    return product.description
+  }
+  return ''
+}
+
+const startEditingDescription = (product) => {
+  editingProductId.value = product.productId
+  editingDescription.value = getProductDescription(product) || ''
+}
+
+const cancelEditingDescription = () => {
+  editingProductId.value = null
+  editingDescription.value = ''
+}
+
+const saveProductDescription = async (product) => {
+  if (editingProductId.value !== product.productId) return
+  
+  isUpdatingDescription.value = true
+  try {
+    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
+    const apolloClient = createApolloClient(channelToken)
+    
+    // For search result products, we don't have translations data
+    // We'll create a translation using en as default language
+    const translationInput = {
+      languageCode: 'en',
+      description: editingDescription.value
+    }
+    
+    const result = await apolloClient.mutate({
+      mutation: UPDATE_PRODUCT_MUTATION,
+      variables: {
+        input: {
+          id: product.productId,
+          translations: [translationInput]
+        }
+      }
+    })
+    
+    if (result.data?.updateProduct) {
+      // Update the local product data
+      const productIndex = products.value.findIndex(p => p.productId === product.productId)
+      if (productIndex !== -1) {
+        products.value[productIndex].description = editingDescription.value
+      }
+    }
+    
+    editingProductId.value = null
+    editingDescription.value = ''
+  } catch (err) {
+    console.error('Error updating product description:', err)
+  } finally {
+    isUpdatingDescription.value = false
+  }
+}
+
 const confirmDelete = async () => {
   if (!deleteProduct.value || !deleteDocId.value) {
     cancelDelete()
@@ -702,7 +860,8 @@ const confirmDelete = async () => {
     const existingDocIds = product.customFields?.techDocs?.map(doc => doc.id) || []
     const updatedDocIds = existingDocIds.filter(id => id !== docId)
 
-    const updatedProduct = await updateProductTechDocs(product.productId, updatedDocIds)
+    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
+    const updatedProduct = await updateProductTechDocs(product.productId, updatedDocIds, channelToken)
 
     if (updatedProduct) {
       const foundIndexProducts = products.value.findIndex(p => p.productId === product.productId)
