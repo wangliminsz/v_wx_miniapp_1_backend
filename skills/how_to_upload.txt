@@ -1,0 +1,47 @@
+POST http://192.168.0.51:3000/shop-api
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="operations"
+
+{ 
+  "query": "mutation ($file: Upload!) { uploadCustomerFile(file: $file) { id name preview source } }", 
+  "variables": { "file": null } 
+}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="map"
+
+{ "0": ["variables.file"] }
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="0"; filename="logo-72-72.png"
+Content-Type: image/png
+
+< logo-72-72.png
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+Result from Vendure server:
+
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: vendure-auth-token
+Content-Language: en
+cache-control: no-store
+Content-Type: application/json; charset=utf-8
+Content-Length: 195
+ETag: W/"c3-GvQJIRtShDA0YczJ3egJ90CycIQ"
+Date: Fri, 22 May 2026 01:54:37 GMT
+Connection: close
+
+{
+  "data": {
+    "uploadCustomerFile": {
+      "id": "115",
+      "name": "logo-72-72.png",
+      "preview": "http://192.168.0.51:3000/assets/logo-72-72__preview.png",
+      "source": "http://192.168.0.51:3000/assets/logo-72-72.png"
+    }
+  }
+}
+

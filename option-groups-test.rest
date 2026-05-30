@@ -1,0 +1,123 @@
+@baseUrl = http://localhost:3000/admin-api
+@token = YOUR_AUTH_TOKEN
+
+### Get All Option Groups
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "query GetAllOptionGroups { productOptionGroups { id code name options { id code name } } }"
+}
+
+### Create Option Group with Options
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "mutation CreateOptionGroup($input: CreateProductOptionGroupInput!) { createProductOptionGroup(input: $input) { id code name options { id code name } } }",
+  "variables": {
+    "input": {
+      "code": "desktop-screen-size",
+      "translations": [{
+        "languageCode": "en",
+        "name": "Desktop Screen Size"
+      }],
+      "options": [
+        {
+          "code": "19-inch",
+          "translations": [{
+            "languageCode": "en",
+            "name": "19-inch"
+          }]
+        },
+        {
+          "code": "21-inch",
+          "translations": [{
+            "languageCode": "en",
+            "name": "21-inch"
+          }]
+        }
+      ]
+    }
+  }
+}
+
+### Create Another Option Group
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "mutation CreateOptionGroup($input: CreateProductOptionGroupInput!) { createProductOptionGroup(input: $input) { id code name options { id code name } } }",
+  "variables": {
+    "input": {
+      "code": "desktop-ram",
+      "translations": [{
+        "languageCode": "en",
+        "name": "Desktop RAM"
+      }],
+      "options": [
+        {
+          "code": "32gb",
+          "translations": [{
+            "languageCode": "en",
+            "name": "32GB"
+          }]
+        },
+        {
+          "code": "64gb",
+          "translations": [{
+            "languageCode": "en",
+            "name": "64GB"
+          }]
+        }
+      ]
+    }
+  }
+}
+
+### Add Option Group to Product
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "mutation AddOptionGroupToProduct($productId: ID!, $optionGroupId: ID!) { addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) { id name optionGroups { id code name options { id code name } } } }",
+  "variables": {
+    "productId": "PRODUCT_ID",
+    "optionGroupId": "OPTION_GROUP_ID"
+  }
+}
+
+### Create Product with Options Flow
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "mutation CreateProduct($input: CreateProductInput!) { createProduct(input: $input) { id name slug } }",
+  "variables": {
+    "input": {
+      "translations": [{
+        "languageCode": "en",
+        "name": "Test Product",
+        "slug": "test-product",
+        "description": "Test product description"
+      }]
+    }
+  }
+}
+
+### Verify Product with Option Groups
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "query GetProductWithOptions($slug: String!) { product(slug: $slug) { id name slug optionGroups { id code name options { id code name } } } }",
+  "variables": {
+    "slug": "test-product"
+  }
+}

@@ -1,0 +1,148 @@
+
+###############################################  Shop TOKEN TOKEN TOKEN OK OK OK
+
+POST http://192.168.0.53:3000/shop-api
+Content-Type: application/json
+
+{
+  "query": "mutation Login { authenticate(input: { native: { username: \"tprice@163.com\", password: \"tttttttt\" } }) { ... on CurrentUser { id identifier } } }"
+}
+
+###############################################  Shop TOKEN TOKEN TOKEN OK OK OK
+
+###############################################  Admin TOKEN TOKEN TOKEN OK OK OK
+
+#### Admin API --> TOKEN TOKEN TOKEN ---- OK OK OK
+POST http://192.168.0.53:3000/admin-api
+Content-Type: application/json
+
+{
+  "query": "mutation Login { authenticate(input: { native: { username: \"superadmin\", password: \"superadmin\" } }) { ... on CurrentUser { id identifier } } }"
+}
+
+###############################################  TOKEN TOKEN TOKEN OK OK OK OK OK
+
+
+
+### 列出所有的 Channel ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK OK OK OK
+### Get all channels with useful fields
+POST http://192.168.0.53:3000/admin-api
+Content-Type: application/json
+Authorization: Bearer 4e11d537b2bbd700e8daa5a98a15f72f84946629a1341e074e2ca2e9447e603c
+
+{
+  "query": "query GetAllChannels { channels(options: { take: 100 }) { items { id code token defaultLanguageCode currencyCode pricesIncludeTax createdAt updatedAt } totalItems } }"
+}
+
+### 列出所有的 Channel ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK OK OK OK
+
+
+### 列出所有的 Product Id Array~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK OK OK OK
+### vendure-token: 7m3k9p2r5t8q1w6y4z0v   ---> 列出渠道的 Product Id Array~~~~ OK
+POST http://192.168.0.53:3000/admin-api
+Content-Type: application/json
+Authorization: Bearer 0623bc867dbc092bf5d639204d61aed91c621e23f523900e40094f26f849c0fb
+
+{
+  "query": "query { products(options: { take: 1000 }) { items { id } } }"
+}
+
+### 列出所有的 Product Id Array~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK OK OK OK
+
+
+### Assign Product --> 新的 Channel~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK OK OK OK
+### Assign multiple products to a new channel (bulk)
+POST http://192.168.0.53:3000/admin-api
+Content-Type: application/json
+Authorization: Bearer 0623bc867dbc092bf5d639204d61aed91c621e23f523900e40094f26f849c0fb
+
+{
+  "query": "mutation AssignProductsToChannel($input: AssignProductsToChannelInput!) { assignProductsToChannel(input: $input) { id name slug } }",
+  "variables": {
+    "input": {
+      "channelId": "2",
+      "productIds": ["1", "2"],
+      "priceFactor": 2
+    }
+  }
+}
+
+### Assign Product --> 新的 Channel~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK OK OK OK
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### 列出 Collection 中所有 Products 信息 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK
+### Fetch product summaries for a collection (with pagination)
+POST http://192.168.0.51:3000/shop-api
+Content-Type: application/json
+Authorization: Bearer 5ff6ddbc08a0c6dc630e1c1c9a174f016fc367a13aa1bed3d97da7180868a6d9
+vendure-token: 3u7xpg60e4lc7stp7vac
+
+{
+  "query": "query GetCollectionProductSummary($collectionId: ID!, $skip: Int, $take: Int) { collectionProductSummary(collectionId: $collectionId, skip: $skip, take: $take) { productId productName slug description featuredAsset { id preview } variantCount minPrice maxPrice minPriceWithTax maxPriceWithTax facetValues { id name } } }",
+  "variables": {
+    "collectionId": "2",
+    "skip": 0,
+    "take": 40
+  }
+}
+
+### 列出 Collection 中所有 Products 信息 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK
+
+
+
+
+
+### 输出 Products， 不同的 Channel 价格 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK
+### Full Product Export (Single-Line Query)
+# @name fullProductExportSingleLine
+
+POST http://192.168.0.53:3000/admin-api
+Content-Type: application/json
+Authorization: Bearer 0623bc867dbc092bf5d639204d61aed91c621e23f523900e40094f26f849c0fb
+vendure-token: k9m2p7r4a1q8y5z3w6v1
+
+{
+  "query": "query FullProductExportQuery { products(options: { take: 1000 }) { items { id name slug description featuredAsset { id name source } assets { id name source } collections { id slug name } channels { id code } facetValues { id code facet { id code } } variants { id name sku taxCategory { id name } stockLevels { stockLocationId stockOnHand } prices { price currencyCode } assets { id source } facetValues { id code facet { id code } } featuredAsset { id source } options { id code group { id code } } } } } }",
+  "variables": {}
+}
+
+###
+
+### 输出 Products， 不同的 Channel 价格 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK
+
+
+
+
+### 列出所有的 Channel ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK OK OK OK
+### Get all channels with useful fields
+POST http://192.168.0.53:3000/admin-api
+Content-Type: application/json
+Authorization: Bearer 0623bc867dbc092bf5d639204d61aed91c621e23f523900e40094f26f849c0fb
+
+{
+  "query": "query GetAllChannels { channels(options: { take: 100 }) { items { id code token defaultLanguageCode currencyCode pricesIncludeTax createdAt updatedAt } totalItems } }"
+}
+
+### 列出所有的 Channel ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OK OK OK OK OK OK

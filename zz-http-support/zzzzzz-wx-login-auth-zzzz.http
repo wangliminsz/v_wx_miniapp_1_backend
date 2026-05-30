@@ -1,0 +1,147 @@
+### =========================================================================
+### 微信渠道授信码与解耦注册流程 —— 终极闭环调测脚本 (Vendure 3.6.3)
+### =========================================================================
+
+@baseUrl = http://192.168.0.51:3000
+@shopApi = {{baseUrl}}/shop-api
+@adminApi = {{baseUrl}}/admin-api
+
+# 💡 注意：测试前请确保在你的 Headers 或者是全局配置中，能够正确识别你的渠道 Code。
+# 以下测试我们以大沙总的渠道别名 "dsy" 为例进行模拟。
+
+
+### -------------------------------------------------------------------------
+### 1. 【管理后台】生成一个新的 4 位授信激活码
+### -------------------------------------------------------------------------
+# @name generateCode
+
+###
+
+### 1. 【管理后台】生成一个新的 4 位授信激活码（JSON 写法）
+POST {{adminApi}}
+Content-Type: application/json
+X-GraphQL-Method: generateRegisterCode
+
+{
+  "query": "mutation GenerateRegisterCode { generateRegisterCode(channelCode: \"Channel_Wang\") { id code channel_code status openid } }"
+}
+
+
+######
+
+
+### ⚡ 批量生成渠道验证码（例如一次性生成 20 个）
+POST {{adminApi}}
+Content-Type: application/json
+X-GraphQL-Method: generateBulkRegisterCodes
+# 如果你的后台开启了身份验证，请取消注释下一行并确保环境变量中有 token
+Authorization: Bearer dc70507e64ea33b5dd27dc4d5408a808918491fd3cace1a2e1770510bc3afbb5
+
+{
+  "query": "mutation DoBulkGenerate($channelCode: String!, $count: Int!) { generateBulkRegisterCodes(channelCode: $channelCode, count: $count) { id code channel_code status openid } }",
+  "variables": {
+    "channelCode": "Channel_Wang",
+    "count": 10
+  }
+}
+
+
+
+### 💡 运行后说明：
+# 拿到返回结果里的 "code"（比如叫 "A7B9"）。将其复制，用于下面的第 2 步和第 3 步测试。
+
+
+
+
+
+
+
+
+
+### -------------------------------------------------------------------------
+### 2. 【小程序前端】解耦的“读”接口：用户输入完 4 位码后，失焦实时查验是否有效
+### -------------------------------------------------------------------------
+# 🎯 请把下面的 code 替换为第 1 步里实际生成的 4 位大写字母
+POST {{shopApi}}
+Content-Type: application/json
+X-GraphQL-Method: checkRegisterCode
+
+{
+  "query": "query CheckRegisterCode { checkRegisterCode(code: \"SE5P\", channelCode: \"Channel_Dsy\") { valid message } }"
+}
+### 💡 运行后预期：
+# 第一次查验时，应该返回：{ "valid": true, "message": "验证通过" }
+
+
+### -------------------------------------------------------------------------
+### 3. 【小程序前端】解耦的“写”接口：输入正确的验证码，一气呵成核销并落户注册
+### -------------------------------------------------------------------------
+# 🎯 请把下面的 verifyCode 替换为第 1 步生成的邀请码
+### 3. 【小程序前端】使用标准 JSON 格式发起核销与落户注册
+POST {{shopApi}}
+Content-Type: application/json
+X-GraphQL-Method: registerWithAuthCode
+vendure-token: the-channel-token-for-channel-dsy
+
+{
+  "query": "mutation RegisterWithAuthCode { registerWithAuthCode(openId: \"wx_oauth_demo_user_001\", verifyCode: \"9BDJ\", nickname: \"fromVscode\", phoneNumber: \"13800138000\") { id identifier authenticationMethods { strategy } } }"
+}
+### 💡 运行后预期：
+# 系统会成功为你创建并在 Postgres 里面落户这个虚拟用户，返回它的用户 ID。
+# 同时，底层的 channel_auth_code 表中该码的状态会自动被洗成 1（已使用），且 openid 锁定为 "wx_oauth_demo_user_001"。
+
+
+POST {{shopApi}}
+Content-Type: application/json
+X-GraphQL-Method: registerWithAuthCode
+vendure-token: the-channel-token-for-channel-dsy
+
+{
+  "query": "mutation RegisterWithAuthCode { registerWithAuthCode(openId: \"wx_oauth_demo_user_002\", verifyCode: \"YA5T\", nickname: \"vscode-02\", lastName: \"vs-rest-02\", phoneNumber: \"13800138222\") { id identifier } }"
+}
+
+
+#########
+
+### -------------------------------------------------------------------------
+### 4. 【二次复测】防刷拦截测试：再次使用同一个授信码尝试为别的人注册
+### -------------------------------------------------------------------------
+POST {{shopApi}}
+Content-Type: application/json
+X-GraphQL-Method: registerWithAuthCode
+
+mutation RegisterWithAuthCode {
+  registerWithAuthCode(
+    openId: "wx_attacker_openid_999"
+    verifyCode: "A7B9"
+    nickname: "想钻空子的坏人"
+  ) {
+    id
+    identifier
+  }
+}
+
+### 💡 运行后预期：
+# 由于该码在第 3 步已经被核销（status 已经是 1），防御墙生效！
+# 接口会直接拦截并无情地砸出错误：“授信码无效、已被使用或渠道不匹配”。
+
+
+### -------------------------------------------------------------------------
+### 5. 【后台流水对账】查看当前渠道下的所有邀请码状态清单
+### -------------------------------------------------------------------------
+POST {{adminApi}}
+Content-Type: application/json
+X-GraphQL-Method: getChannelAuthCodes
+
+query GetChannelAuthCodes {
+  getChannelAuthCodes(channelCode: "dsy") {
+    id
+    code
+    channel_code
+    status
+    openid
+  }
+}
+
+### 💡 运行后预期：
+# 能够清晰看到你刚才生成的那个验证码，状态为 1，且 openid 栏里赫然写着 "wx_oauth_demo_user_001"。

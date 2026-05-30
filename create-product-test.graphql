@@ -1,0 +1,45 @@
+# Test Create Product Mutation
+mutation CreateProductTest($input: CreateProductInput!) {
+  createProduct(input: $input) {
+    id
+    name
+    slug
+    description
+    featuredAsset {
+      id
+      name
+      preview
+    }
+    assets {
+      id
+      name
+    }
+    facetValues {
+      id
+      code
+      name
+    }
+    collections {
+      id
+      slug
+      name
+    }
+  }
+}
+
+# Variables
+{
+  "input": {
+    "translations": [
+      {
+        "languageCode": "en",
+        "name": "Desktop",
+        "slug": "desktop",
+        "description": "desc Desktop GPU, SSDs and Turbo CPU type."
+      }
+    ],
+    "featuredAssetId": "133",
+    "assetIds": ["134", "135", "136"],
+    "facetValueIds": ["1", "2", "3"]
+  }
+}

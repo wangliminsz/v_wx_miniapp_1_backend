@@ -1,0 +1,105 @@
+@baseUrl = http://localhost:3000/admin-api
+@token = YOUR_AUTH_TOKEN
+
+### Get Product by Slug
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "query GetProductBySlug($slug: String!) { product(slug: $slug) { id name slug } }",
+  "variables": {
+    "slug": "desktop"
+  }
+}
+
+### Get All Options with Groups
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "query GetAllOptions { productOptions { id code name group { id code name } } }"
+}
+
+### Create Product Variant
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "mutation CreateProductVariants($input: [CreateProductVariantInput!]!) { createProductVariants(input: $input) { id sku name price stockOnHand } }",
+  "variables": {
+    "input": [
+      {
+        "productId": "PRODUCT_ID",
+        "sku": "desktop-new-001",
+        "price": 899900,
+        "optionIds": ["OPTION_ID_1", "OPTION_ID_2"],
+        "translations": [
+          {
+            "languageCode": "en",
+            "name": "Desktop New 19 inch 32GB"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+### Update Product Variant Assets
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "mutation UpdateProductVariant($input: UpdateProductVariantInput!) { updateProductVariant(input: $input) { id sku featuredAsset { id name } assets { id name } } }",
+  "variables": {
+    "input": {
+      "id": "VARIANT_ID",
+      "featuredAssetId": "ASSET_ID_1",
+      "assetIds": ["ASSET_ID_2", "ASSET_ID_3"]
+    }
+  }
+}
+
+### Update Variant Stock
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "mutation UpdateProductVariant($input: UpdateProductVariantInput!) { updateProductVariant(input: $input) { id sku stockOnHand } }",
+  "variables": {
+    "input": {
+      "id": "VARIANT_ID",
+      "stockOnHand": 30
+    }
+  }
+}
+
+### Get Product Variants by SKU
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "query GetProductVariants($options: ProductVariantListOptions) { productVariants(options: $options) { items { id sku name price stockOnHand featuredAsset { id name } assets { id name } } totalItems } }",
+  "variables": {
+    "options": {
+      "filter": { sku: { eq: "desktop-new-001" } }
+    }
+  }
+}
+
+### Get Product with Variants
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "query": "query GetProductWithVariants($slug: String!) { product(slug: $slug) { id name slug variants { id sku name price stockOnHand } } }",
+  "variables": {
+    "slug": "desktop"
+  }
+}

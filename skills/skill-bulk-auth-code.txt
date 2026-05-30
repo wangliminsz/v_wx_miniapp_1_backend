@@ -1,0 +1,75 @@
+微信校验码管理（...)
+
+批量生成 auth code:
+
+### ⚡ 批量生成渠道验证码（例如一次性生成 20 个）
+POST {{adminApi}}
+Content-Type: application/json
+X-GraphQL-Method: generateBulkRegisterCodes
+# 如果你的后台开启了身份验证，请取消注释下一行并确保环境变量中有 token
+Authorization: Bearer dc70507e64ea33b5dd27dc4d5408a808918491fd3cace1a2e1770510bc3afbb5
+
+{
+  "query": "mutation DoBulkGenerate($channelCode: String!, $count: Int!) { generateBulkRegisterCodes(channelCode: $channelCode, count: $count) { id code channel_code status openid } }",
+  "variables": {
+    "channelCode": "Channel_Wang",
+    "count": 5
+  }
+}
+
+~~~~~~~~~~
+
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: vendure-auth-token
+Content-Language: en
+cache-control: no-store
+Content-Type: application/json; charset=utf-8
+Content-Length: 446
+ETag: W/"1be-YyHbElqNRSMkCpCKnwxOO/ZFA0U"
+Date: Wed, 27 May 2026 12:27:47 GMT
+Connection: close
+
+{
+  "data": {
+    "generateBulkRegisterCodes": [
+      {
+        "id": "16",
+        "code": "A9HP",
+        "channel_code": "Channel_Wang",
+        "status": 0,
+        "openid": null
+      },
+      {
+        "id": "17",
+        "code": "U2ER",
+        "channel_code": "Channel_Wang",
+        "status": 0,
+        "openid": null
+      },
+      {
+        "id": "18",
+        "code": "K9JU",
+        "channel_code": "Channel_Wang",
+        "status": 0,
+        "openid": null
+      },
+      {
+        "id": "19",
+        "code": "9GMQ",
+        "channel_code": "Channel_Wang",
+        "status": 0,
+        "openid": null
+      },
+      {
+        "id": "20",
+        "code": "6JN3",
+        "channel_code": "Channel_Wang",
+        "status": 0,
+        "openid": null
+      }
+    ]
+  }
+}

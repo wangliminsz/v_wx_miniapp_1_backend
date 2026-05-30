@@ -1,0 +1,138 @@
+POST http://192.168.0.51:3000/admin-api
+Content-Type: application/json
+
+{
+  "query": "query SearchProductsWithOptions($term: String!, $page: Int, $pageSize: Int) { searchProductsWithOptions(term: $term, page: $page, pageSize: $pageSize) { totalCount items { productId productName slug description productAsset { id preview } productFacets { id name code } variantCount minPrice maxPrice minPriceWithTax maxPriceWithTax variants { variantId variantName price priceWithTax variantFacets { id name code } options { id name } } } } }",
+  "variables": {
+    "term": "laptop",
+    "page": 1,
+    "pageSize": 12
+  }
+}
+
+the result:
+
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: vendure-auth-token
+Content-Language: en
+cache-control: no-store
+Content-Type: application/json; charset=utf-8
+Content-Length: 1448
+ETag: W/"5a8-eW0kyjz36jz0nmr1BHjyHmltMN4"
+Date: Fri, 22 May 2026 00:23:41 GMT
+Connection: close
+
+{
+  "data": {
+    "searchProductsWithOptions": {
+      "totalCount": 1,
+      "items": [
+        {
+          "productId": "1",
+          "productName": "Laptop",
+          "slug": "laptop",
+          "description": "Now equipped with seventh-generation Intel Core processors, Laptop is snappier than ever. From daily tasks like launching apps and opening files to more advanced computing, you can power through your day thanks to faster SSDs and Turbo Boost processing up to 3.6GHz.",
+          "productAsset": {
+            "id": "70",
+            "preview": "derick-david-409858-unsplash__preview.jpg"
+          },
+          "productFacets": [
+            {
+              "id": "1",
+              "name": "Electronics",
+              "code": "electronics"
+            },
+            {
+              "id": "2",
+              "name": "Computers",
+              "code": "computers"
+            },
+            {
+              "id": "3",
+              "name": "Apple",
+              "code": "apple"
+            }
+          ],
+          "variantCount": 4,
+          "minPrice": 1299,
+          "maxPrice": 2299,
+          "minPriceWithTax": 1558.8,
+          "maxPriceWithTax": 2758.8,
+          "variants": [
+            {
+              "variantId": "1",
+              "variantName": "Laptop 13 inch 8GB",
+              "price": 1299,
+              "priceWithTax": 1558.8,
+              "variantFacets": [],
+              "options": [
+                {
+                  "id": "5",
+                  "name": "13 inch"
+                },
+                {
+                  "id": "7",
+                  "name": "8GB"
+                }
+              ]
+            },
+            {
+              "variantId": "2",
+              "variantName": "Laptop 15 inch 8GB",
+              "price": 1399,
+              "priceWithTax": 1678.8,
+              "variantFacets": [],
+              "options": [
+                {
+                  "id": "6",
+                  "name": "15 inch"
+                },
+                {
+                  "id": "7",
+                  "name": "8GB"
+                }
+              ]
+            },
+            {
+              "variantId": "3",
+              "variantName": "Laptop 13 inch 16GB",
+              "price": 2199,
+              "priceWithTax": 2638.8,
+              "variantFacets": [],
+              "options": [
+                {
+                  "id": "8",
+                  "name": "16GB"
+                },
+                {
+                  "id": "5",
+                  "name": "13 inch"
+                }
+              ]
+            },
+            {
+              "variantId": "4",
+              "variantName": "Laptop 15 inch 16GB",
+              "price": 2299,
+              "priceWithTax": 2758.8,
+              "variantFacets": [],
+              "options": [
+                {
+                  "id": "6",
+                  "name": "15 inch"
+                },
+                {
+                  "id": "8",
+                  "name": "16GB"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,100 @@
+Vendure 3.5.2, I want to import the "Filter by facet values" for my collections, by .csv file, using /admin-api,
+ 
+my current colleciton import .csv file format:
+ 
+collectionSlug,collectionName,parentSlug,collectionFeaturedAsset
+hepatitis_c,丙肝,liver_medications,丙肝抽象图-.jpg
+ 
+my current facet import .csv file format:
+ 
+facetCode,facetName,facetValueCode,facetValueName
+category,category,for-cancer,癌症药物
+category,category,for-breast-cancer,乳腺癌
+category,category,hepatitis_c,丙肝
+ 
+I need to attach this facet "category,category,hepatitis_c,丙肝" ---> to this collection: "hepatitis_c,丙肝,liver_medications,丙肝抽象图-.jpg "To import the "Filter by facet values" configuration for your collections via CSV using the /admin-api in Vendure 3.5.2, you'll need to extend your current collection import CSV format to include details for the facet value filter. Since Vendure doesn't have a built-in CSV importer for collections (it's primarily for products), I'm assuming you're using a custom script or tool that reads the CSV and makes GraphQL calls to the admin API (e.g., createCollection or updateCollection mutations) to handle the import.
+Step 1: Extend Your Collection CSV Format
+Add a new column to specify the facet value code(s) to use in the filter. This allows you to attach the desired facet value (like "hepatitis_c") to the collection's filter.
+Updated collection CSV format:
+textcollectionSlug,collectionName,parentSlug,collectionFeaturedAsset,facetValueCodeForFilter
+hepatitis_c,丙肝,liver_medications,丙肝抽象图-.jpg,hepatitis_c
+
+facetValueCodeForFilter: The code of the facet value to attach as the filter (from your facet CSV). If attaching multiple, use pipe-separated values (e.g., hepatitis_c|another_code). If no filter is needed, leave it blank.
+
+This matches your example: attaching the facet value with code "hepatitis_c" (name "丙肝" from facet "category") to the collection with slug "hepatitis_c".
+Step 2: Update Your Import Script Logic
+In your import script (which processes the CSV and calls the /admin-api), add logic to:
+
+After importing facets (creating them via createFacet and addFacetValues if needed), query for the facet value ID(s) using the code from the new column.
+When creating or updating the collection, include the filters field with the "facet-value-filter" configuration using the resolved ID(s).
+Resolve parentSlug to parentId (you likely already do this).
+Upload/handle the featuredAsset to get its ID.
+
+Example GraphQL queries/mutations to use in the script (via the admin API at /admin-api):
+
+Query Facet Value ID by Code (run this for each facetValueCodeForFilter):textquery {
+  facetValues(options: { filter: { code: { eq: "hepatitis_c" } } }) {
+    items {
+      id
+    }
+  }
+}
+This returns the ID (e.g., "T1"). If multiple codes, query them individually or in a batch.
+Note: If codes aren't unique across facets, filter by facet code too (e.g., add facet: { code: { eq: "category" } } to the filter).
+
+Create Collection with Filter (if importing new collections):textmutation {
+  createCollection(input: {
+    slug: "hepatitis_c"
+    translations: [{ languageCode: en, name: "丙肝" }]
+    parentId: "PARENT_ID_HERE"  # Resolved from parentSlug
+    featuredAssetId: "ASSET_ID_HERE"  # From uploaded 丙肝抽象图-.jpg
+    filters: [
+      {
+        code: "facet-value-filter"
+        arguments: [
+          { name: "facetValueIds", value: "[\"T1\"]" }  # JSON-stringified array of IDs
+          { name: "containsAny", value: "false" }  # Matches your UI image (off = AND/all must match)
+        ]
+      }
+    ]
+  }) {
+    id
+    slug
+  }
+}
+Update Existing Collection with Filter (if collections are already imported):
+First, query the collection ID by slug:textquery {
+  collections(options: { filter: { slug: { eq: "hepatitis_c" } } }) {
+    items {
+      id
+    }
+  }
+}
+Then update:textmutation {
+  updateCollection(input: {
+    id: "COLLECTION_ID_HERE"
+    filters: [
+      {
+        code: "facet-value-filter"
+        arguments: [
+          { name: "facetValueIds", value: "[\"T1\"]" }
+          { name: "containsAny", value: "false" }
+        ]
+      }
+    ]
+  }) {
+    id
+    slug
+  }
+}
+
+
+Additional Notes
+
+Contains Any: Set to "false" for AND logic (product must have all specified facet values). If you want OR logic (has any of the values), set to "true".
+Multilingual Names: Since your names are in Chinese (e.g., "丙肝"), ensure translations are handled in the mutations (use the correct languageCode, like zh for Chinese).
+Error Handling: In your script, handle cases where the facet value code doesn't exist (e.g., skip or log errors).
+Testing: Test with a small CSV first. After import, verify in the admin UI that the collection has the "Facet values" filter attached (e.g., "丙肝 in category").
+If your script doesn't support this yet, you can manually run the GraphQL mutations in the Vendure admin GraphQL playground or via tools like Postman.
+
+This approach keeps your CSV simple while leveraging the admin API to attach the filter. If your import process is different (e.g., using a specific plugin), provide more details for a tailored solution.
