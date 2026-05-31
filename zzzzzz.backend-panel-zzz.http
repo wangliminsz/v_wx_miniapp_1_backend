@@ -1,20 +1,86 @@
-@baseUrl=http://192.168.0.51:3000
+@baseUrl=http://192.168.0.51:3000/shop-api
 @adminToken=26df74f26be27de534dfc7232b42b395706f49e26ff4891d816f38b0b1556fa2
+
+@shopToken=1234
+
+@channelToken=the-channel-token-for-channel-dsy
 
 
 ###############################################  
 
+POST {{baseUrl}}
+Content-Type: application/json
+vendure-token: {{channelToken}}
 
-
+{
+  "query": "query GetAvailableProductFacets($collectionId: ID!) { availableProductFacets(collectionId: $collectionId) { id code name values { id code name } } }",
+  "variables": {
+    "collectionId": "3" 
+  }
+}
 
 ############################################### 
 
+POST {{baseUrl}}
+Content-Type: application/json
+vendure-token: {{channelToken}}
+
+{
+  "query": "query GetAvailableFacets($collectionId: ID!) { availableFacets(collectionId: $collectionId) { id code name values { id code name } } }",
+  "variables": {
+    "collectionId": "3"
+  }
+}
+
+
+##############################################
 
 
 
-############################################### 
+### 🟢 测试 productsByFacets (按属性标签复合筛选分类商品列表)
+# 说明：传入分类 ID 和标签 ID 数组，验证是否已经完美剔除了：
+#       1. 处于 Disabled 状态的商品
+#       2. 被软删除的商品
+#       3. 不属于当前 channelToken 渠道的商品
 
 
+###############
+
+
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "query": "query GetProductsByFacets($collectionId: ID!, $facetValueIds: [ID!]!, $skip: Int, $take: Int) { productsByFacets(collectionId: $collectionId, facetValueIds: $facetValueIds, skip: $skip, take: $take) { totalCount items { id name slug enabled facetValues { id name code } } } }",
+  "variables": {
+    "collectionId": "3",
+    "facetValueIds": ["40", "41"],
+    "skip": 0,
+    "take": 12
+  }
+}
+
+
+
+
+
+
+############################################### 需要改进：enable
+vendure-token: {{channelToken}}
+#####
+
+POST http://192.168.0.51:3000/shop-api
+Content-Type: application/json
+vendure-token: {{channelToken}}
+
+{
+  "query": "query GetCollectionProductSummary($collectionId: ID!, $skip: Int, $take: Int) { collectionProductSummary(collectionId: $collectionId, skip: $skip, take: $take) { productId productName slug description featuredAsset { id preview } variantCount minPrice maxPrice minPriceWithTax maxPriceWithTax facetValues { id name } } }",
+  "variables": {
+    "collectionId": "3",
+    "skip": 0,
+    "take": 40
+  }
+}
 
 
 ###############################################  
