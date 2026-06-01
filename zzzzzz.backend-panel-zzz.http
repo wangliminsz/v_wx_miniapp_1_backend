@@ -62,6 +62,27 @@ Content-Type: application/json
 
 
 
+### vendure-token: {{channelToken}}
+
+################################################ all Option Groups
+
+POST {{baseUrl}}
+Content-Type: application/json
+vendure-token: {{channelToken}}
+
+{
+  "query": "query GetAllOptionGroups { allOptionGroups { id code name options { id code name } } }"
+}
+
+
+###################
+
+
+
+
+
+
+
 
 
 

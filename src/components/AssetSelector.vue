@@ -125,10 +125,11 @@ import { useAuthStore } from '../stores/auth'
 const props = defineProps({
   title: { type: String, default: 'Select Assets' },
   modelValue: { type: [Array, String], default: () => [] },
-  selectMultiple: { type: Boolean, default: true }
+  selectMultiple: { type: Boolean, default: true },
+  emitFullAssets: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:modelValue', 'close'])
+const emit = defineEmits(['update:modelValue', 'close', 'confirm'])
 
 const authStore = useAuthStore()
 const searchTerm = ref('')
@@ -205,7 +206,8 @@ const selectedCount = computed(() => selectedAssetIds.value.length)
 const isSelected = (asset) => selectedAssetIds.value.includes(asset.id)
 
 const getAssetPreview = (asset) => {
-  if (asset.preview) {
+  if (asset.preview && typeof asset.preview === 'string') {
+    // Vendure's Asset.preview is already a full URL, return it directly!
     return asset.preview
   }
   return 'https://via.placeholder.com/200x200?text=Asset'
@@ -231,10 +233,19 @@ const toggleSelection = (asset) => {
 const close = () => emit('close')
 
 const confirmSelection = () => {
-  if (props.selectMultiple) {
-    emit('confirm', [...selectedAssetIds.value])
+  if (props.emitFullAssets) {
+    const selectedAssets = assets.value.filter(a => selectedAssetIds.value.includes(a.id))
+    if (props.selectMultiple) {
+      emit('confirm', selectedAssets)
+    } else {
+      emit('confirm', selectedAssets[0] || null)
+    }
   } else {
-    emit('confirm', selectedAssetIds.value[0] || '')
+    if (props.selectMultiple) {
+      emit('confirm', [...selectedAssetIds.value])
+    } else {
+      emit('confirm', selectedAssetIds.value[0] || '')
+    }
   }
 }
 
