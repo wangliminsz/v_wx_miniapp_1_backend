@@ -73,11 +73,19 @@
 
                 <div class="mt-2 flex gap-2 flex-wrap">
                     <div class="flex gap-2">
+
+                        <button @click="showAssignChannelModal = true" :disabled="selectedProducts.length === 0 || isAssigningToChannel"
+                            class="px-4 py-2 bg-purple-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Assign selected products to a channel">
+                            {{ isAssigningToChannel ? 'Assigning...' : 'Assign to Channel' }}
+                        </button>
+                        
                         <button @click="removeFromChannel" :disabled="selectedProducts.length === 0 || isRemovingFromChannel"
                             class="px-4 py-2 bg-orange-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Remove selected products from current channel">
                             {{ isRemovingFromChannel ? 'Removing...' : 'Remove from Channel' }}
                         </button>
+                        
                         <button @click="exportSelectedProducts" :disabled="selectedProducts.length === 0 || isExporting"
                             class="px-4 py-2 bg-green-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Export only the selected products">
@@ -564,6 +572,47 @@
         </Transition>
     </Teleport>
 
+    <!-- Assign to Channel Modal -->
+    <Teleport to="body">
+        <Transition name="modal">
+            <div v-if="showAssignChannelModal" class="fixed inset-0 z-50 flex items-center justify-center"
+                style="background: rgba(0,0,0,0.5);">
+                <div class="relative rounded-lg shadow-xl w-80 border border-gray-600"
+                    style="background-color: #1f2937;">
+                    <div class="p-4 text-center">
+                        <h3 class="text-sm font-semibold text-white mb-2">Assign to Channel</h3>
+                        <p class="text-gray-400 text-xs mb-4">
+                            Select a channel to assign {{ selectedProducts.length }} product(s) to
+                        </p>
+                        
+                        <div class="mb-4">
+                            <label class="block text-gray-300 text-sm mb-2 text-left">Channel</label>
+                            <select v-model="selectedAssignChannel"
+                                class="w-full px-4 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none">
+                                <option :value="null" disabled>Select a channel</option>
+                                <option v-for="channel in channels" :key="channel.id" :value="channel">
+                                    {{ channel.code }} ({{ channel.currencyCode }})
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button @click="showAssignChannelModal = false; selectedAssignChannel = null;"
+                                class="flex-1 px-3 py-1.5 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-md transition-colors">
+                                Cancel
+                            </button>
+                            <button @click="assignToChannel"
+                                :disabled="!selectedAssignChannel || isAssigningToChannel"
+                                class="flex-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                {{ isAssigningToChannel ? 'Assigning...' : 'Assign' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+    </Teleport>
+
     <!-- Asset Context Menu (Teleported to body to avoid overflow issues) -->
     <Teleport to="body">
         <Transition name="fade">
@@ -653,6 +702,9 @@ const isExporting = ref(false)
 const exportError = ref(null)
 
 const isRemovingFromChannel = ref(false)
+const isAssigningToChannel = ref(false)
+const showAssignChannelModal = ref(false)
+const selectedAssignChannel = ref(null)
 
 const activeChannel = ref(null)
 
@@ -675,7 +727,7 @@ const showDeleteModal = ref(false)
 const deleteProduct = ref(null)
 const deleteDocId = ref(null)
 
-const channels = ref([])
+const channels = computed(() => authStore.channels)
 const selectedChannel = ref(null)
 const facets = ref([])
 const editingFacetsProductId = ref(null)
@@ -813,6 +865,16 @@ const UPDATE_PRODUCT_MUTATION = gql`
 const REMOVE_PRODUCTS_FROM_CHANNEL_MUTATION = gql`
   mutation RemoveProductsFromChannel($input: RemoveProductsFromChannelInput!) {
     removeProductsFromChannel(input: $input) {
+      id
+      name
+      slug
+    }
+  }
+`
+
+const ADD_PRODUCTS_TO_CHANNEL_MUTATION = gql`
+  mutation AssignProductsToChannel($input: AssignProductsToChannelInput!) {
+    assignProductsToChannel(input: $input) {
       id
       name
       slug
@@ -1254,6 +1316,43 @@ const removeFromChannel = async () => {
         alert(`Failed to remove products: ${err.message}`)
     } finally {
         isRemovingFromChannel.value = false
+    }
+}
+
+const assignToChannel = async () => {
+    if (selectedProducts.value.length === 0 || !selectedAssignChannel.value) {
+        return
+    }
+
+    isAssigningToChannel.value = true
+    try {
+        // We need to create an Apollo client for the target channel? Or can we use any?
+        // Let's use the target channel's token
+        apolloClient = createApolloClient(authStore.token, selectedAssignChannel.value.token)
+        
+        const { data } = await apolloClient.mutate({
+            mutation: ADD_PRODUCTS_TO_CHANNEL_MUTATION,
+            variables: {
+                input: {
+                    channelId: selectedAssignChannel.value.id,
+                    productIds: selectedProducts.value.map(p => p.id)
+                }
+            }
+        })
+        
+        alert(`Successfully assigned ${selectedProducts.value.length} product(s) to ${selectedAssignChannel.value.code}!`)
+        
+        // Refresh product list
+        await fetchProducts()
+        clearSelection()
+        // Close modal
+        showAssignChannelModal.value = false
+        selectedAssignChannel.value = null
+    } catch (err) {
+        console.error('Error assigning products to channel:', err)
+        alert(`Failed to assign products: ${err.message}`)
+    } finally {
+        isAssigningToChannel.value = false
     }
 }
 
