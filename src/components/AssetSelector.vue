@@ -121,6 +121,7 @@ import { gql } from '@apollo/client/core'
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
 import { useAuthStore } from '../stores/auth'
+import { getChannelTokenFromQuery } from '../utils/channelToken.js'
 
 const props = defineProps({
   title: { type: String, default: 'Select Assets' },
@@ -252,8 +253,8 @@ const confirmSelection = () => {
 const fetchAssets = async () => {
     loading.value = true
     try {
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
-        if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        let channelToken = getChannelTokenFromQuery() || null
+        if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
         
@@ -286,8 +287,8 @@ const handleFileSelect = async (e) => {
     isUploading.value = true
     
     try {
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
-        if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        let channelToken = getChannelTokenFromQuery() || null
+        if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
         

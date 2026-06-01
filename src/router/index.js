@@ -90,8 +90,8 @@ router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   
   if (requiresAuth && !authStore.token) {
-    // Redirect to login if trying to access protected route without auth
-    next({ name: 'Login' })
+    // Redirect to login if trying to access protected route without auth, preserving query params!
+    next({ name: 'Login', query: to.query })
   } else {
     next()
   }

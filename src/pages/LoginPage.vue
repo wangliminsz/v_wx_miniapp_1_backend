@@ -7,6 +7,18 @@
       <div class="bg-dark-200 p-6 rounded-md border border-dark-100">
         <h2 class="text-xl font-bold text-blue-300 mb-4">Login</h2>
         
+        <!-- Channel info display -->
+        <div class="mb-4 p-3 bg-yellow-900/30 border border-yellow-600 rounded-md">
+          <p class="text-sm text-yellow-300"><strong>Current Channel:</strong></p>
+          <p v-if="currentChannelInfo" class="text-sm text-yellow-200 font-mono mt-1">
+            Name: {{ currentChannelInfo.name }} <br>
+            Token: {{ currentChannelInfo.token }}
+          </p>
+          <p v-else class="text-sm text-yellow-200 font-mono mt-1">
+            Token: {{ currentChannelToken }}
+          </p>
+        </div>
+        
         <!-- Error message -->
         <div v-if="error" class="bg-red-900/30 border border-red-500 text-red-400 p-4 rounded-md mb-4">
           <p class="text-sm">{{ error }}</p>
@@ -51,13 +63,21 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { getChannelTokenFromQuery } from '../utils/channelToken.js'
 
 // Router and auth store
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Get channel mapping from env
+const channelMapping = JSON.parse(import.meta.env.VITE_CHANNEL_MAPPING || '[]')
+const currentChannelToken = computed(() => getChannelTokenFromQuery())
+const currentChannelInfo = computed(() => {
+  return channelMapping.find(c => c.token === currentChannelToken.value) || null
+})
 
 // Form state
 const username = ref('')

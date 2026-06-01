@@ -24,7 +24,7 @@
                 </div>
 
                 <div v-if="!isSingleChannel" class="flex items-center gap-2">
-                    <label for="channelSelect" class="font-bold text-blue-300">Export Channel:</label>
+                    <label for="channelSelect" class="font-bold text-blue-300">By Channel:</label>
                     <select id="channelSelect" v-model="selectedChannel"
                         class="px-4 py-2 bg-dark-200 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/50 transition-colors">
                         <option :value="null">All Channels</option>
@@ -73,6 +73,11 @@
 
                 <div class="mt-2 flex gap-2 flex-wrap">
                     <div class="flex gap-2">
+                        <button @click="removeFromChannel" :disabled="selectedProducts.length === 0 || isRemovingFromChannel"
+                            class="px-4 py-2 bg-orange-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Remove selected products from current channel">
+                            {{ isRemovingFromChannel ? 'Removing...' : 'Remove from Channel' }}
+                        </button>
                         <button @click="exportSelectedProducts" :disabled="selectedProducts.length === 0 || isExporting"
                             class="px-4 py-2 bg-green-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Export only the selected products">
@@ -170,6 +175,12 @@
                                     <span v-for="collection in product.collections" :key="collection.id"
                                         class="text-xs bg-dark-300 text-gray-300 px-2 py-1 rounded-full">
                                         {{ collection.name }}
+                                    </span>
+                                </div>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    <span v-for="channel in product.channels" :key="channel.id"
+                                        class="text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded-full border border-blue-700">
+                                        {{ channel.code }}
                                     </span>
                                 </div>
 
@@ -610,6 +621,7 @@ import { setContext } from '@apollo/client/link/context'
 
 import { useAuthStore } from '../stores/auth'
 import AssetSelector from './AssetSelector.vue'
+import { getChannelTokenFromQuery } from '../utils/channelToken.js'
 
 // Close menu when clicking outside
 const handleClickOutside = (event) => {
@@ -639,6 +651,10 @@ const sortOrder = ref('asc') // 'asc' | 'desc'
 
 const isExporting = ref(false)
 const exportError = ref(null)
+
+const isRemovingFromChannel = ref(false)
+
+const activeChannel = ref(null)
 
 const uploadingProductId = ref(null)
 const uploadSuccessProductId = ref(null)
@@ -688,6 +704,7 @@ const displaySelectedChannel = computed(() => {
 })
 
 const createApolloClient = (authToken, channelToken = null) => {
+    console.log('createApolloClient', { authToken, channelToken })
     const httpLink = createHttpLink({
         uri: import.meta.env.VITE_VENDURE_ADMIN_API_URL,
         fetchOptions: { credentials: 'include' }
@@ -701,6 +718,7 @@ const createApolloClient = (authToken, channelToken = null) => {
         if (channelToken) {
             requestHeaders['vendure-token'] = channelToken
         }
+        console.log('Sending request headers', requestHeaders)
         return { headers: requestHeaders }
     })
 
@@ -727,6 +745,7 @@ const GET_PRODUCTS_QUERY = gql`
         featuredAsset { id preview source name }
         assets { id preview source name }
         collections { id name }
+        channels { id code token }
         facetValues {
           id
           name
@@ -791,6 +810,16 @@ const UPDATE_PRODUCT_MUTATION = gql`
   }
 `
 
+const REMOVE_PRODUCTS_FROM_CHANNEL_MUTATION = gql`
+  mutation RemoveProductsFromChannel($input: RemoveProductsFromChannelInput!) {
+    removeProductsFromChannel(input: $input) {
+      id
+      name
+      slug
+    }
+  }
+`
+
 const PRODUCT_EXPORT_QUERY = gql`
   query FullProductExportQuery {
     products(options: { take: 1000 }) {
@@ -819,18 +848,21 @@ const PRODUCT_EXPORT_QUERY = gql`
 const fetchProducts = async () => {
     loading.value = true
     error.value = ''
+    
     try {
         // Use active channel from auth store if available and no channel selected
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
+        console.log('fetchProducts: channelToken from getChannelTokenFromQuery', channelToken)
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 
-        apolloClient = createApolloClient(authStore.token, channelToken)
+        // Use Apollo client WITH our channel token for the query!
+        const apolloClientWithChannel = createApolloClient(authStore.token, channelToken)
 
-        const result = await apolloClient.query({
+        const result = await apolloClientWithChannel.query({
             query: GET_PRODUCTS_QUERY,
             fetchPolicy: 'network-only'
         })
@@ -884,10 +916,17 @@ const fetchProducts = async () => {
                 facets.value = []
             }
 
+            if (result.data.activeChannel) {
+                activeChannel.value = result.data.activeChannel
+            }
+            
             // Use channels from auth store instead of query
             channels.value = authStore.channels.length > 0 ? authStore.channels : []
         }
     } catch (err) {
+        console.error('fetchProducts error', err)
+        console.error('GraphQL errors', err.graphQLErrors)
+        console.error('Network error', err.networkError)
         error.value = err.message
     } finally {
         loading.value = false
@@ -1014,10 +1053,10 @@ const handleDocUpload = async (event, product) => {
 
     try {
         // Get channel token
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 
@@ -1100,10 +1139,10 @@ const confirmDelete = async () => {
         const updatedDocIds = existingDocIds.filter(id => id !== docId)
 
         // Get channel token
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 
@@ -1168,6 +1207,56 @@ const clearSelection = () => {
     emit('selection-change', [])
 }
 
+const removeFromChannel = async () => {
+    if (selectedProducts.value.length === 0) {
+        alert('Please select at least one product to remove from the channel.')
+        return
+    }
+
+    if (!confirm(`Are you sure you want to remove ${selectedProducts.value.length} product(s) from the current channel?`)) {
+        return
+    }
+
+    isRemovingFromChannel.value = true
+    try {
+        let channelToken = getChannelTokenFromQuery() || null
+        if (selectedChannel.value) {
+            channelToken = selectedChannel.value.token
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+            channelToken = authStore.activeChannel.token
+        }
+        
+        const channelId = selectedChannel.value?.id || activeChannel.value?.id
+        
+        if (!channelId) {
+            throw new Error('No active channel found. Please select a channel first.')
+        }
+        
+        apolloClient = createApolloClient(authStore.token, channelToken)
+        
+        const { data } = await apolloClient.mutate({
+            mutation: REMOVE_PRODUCTS_FROM_CHANNEL_MUTATION,
+            variables: {
+                input: {
+                    channelId: channelId,
+                    productIds: selectedProducts.value.map(p => p.id)
+                }
+            }
+        })
+        
+        alert(`Successfully removed ${selectedProducts.value.length} product(s) from the channel.`)
+        
+        // Refresh product list
+        await fetchProducts()
+        clearSelection()
+    } catch (err) {
+        console.error('Error removing products from channel:', err)
+        alert(`Failed to remove products: ${err.message}`)
+    } finally {
+        isRemovingFromChannel.value = false
+    }
+}
+
 // CSV Handlers
 const exportSelectedProducts = async () => {
     exportError.value = null
@@ -1176,10 +1265,10 @@ const exportSelectedProducts = async () => {
         if (selectedProducts.value.length === 0) throw new Error('Please select at least one product.')
 
         // Use active channel from auth store if available and no channel selected
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 
@@ -1249,10 +1338,10 @@ const exportAllProducts = async () => {
     isExporting.value = true
     try {
         // Use active channel from auth store if available and no channel selected
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 
@@ -1363,10 +1452,10 @@ const saveProductDescription = async (product) => {
     isUpdatingDescription.value = true
     try {
         // Use active channel from auth store if available
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 
@@ -1424,10 +1513,10 @@ const saveProductDescription = async (product) => {
 const toggleProductEnabled = async (product) => {
     isUpdatingEnabled.value[product.id] = true
     try {
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 
@@ -1491,10 +1580,10 @@ const updateProductAssets = async (selectedIds) => {
 
     isUpdatingAssets.value = true
     try {
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 
@@ -1550,10 +1639,10 @@ const updateProductAssets = async (selectedIds) => {
 
 const removeAsset = async (product, assetId) => {
     try {
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 
@@ -1612,10 +1701,10 @@ const removeAsset = async (product, assetId) => {
 const setFeaturedAsset = async (product, assetId) => {
     showAssetMenu.value = null
     try {
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 
@@ -1689,10 +1778,10 @@ const cancelEditingFacets = () => {
 const toggleProductFacet = async (product, facetValue, isSelected) => {
     isUpdatingFacets.value = true
     try {
-        let channelToken = import.meta.env.VITE_CHANNEL_TOKEN || null
+        let channelToken = getChannelTokenFromQuery() || null
         if (selectedChannel.value) {
             channelToken = selectedChannel.value.token
-        } else if (authStore.activeChannel && !import.meta.env.VITE_CHANNEL_TOKEN) {
+        } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
             channelToken = authStore.activeChannel.token
         }
 

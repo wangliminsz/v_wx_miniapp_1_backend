@@ -7,6 +7,12 @@
         <div>
           <h1 class="text-2xl font-bold text-white">Manage Variants</h1>
           <p class="text-gray-400 mt-1">{{ product?.name || 'Loading...' }}</p>
+          <div class="flex flex-wrap gap-2 mt-3">
+            <span v-for="channel in product?.channels" :key="channel.id"
+              class="text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded-full border border-blue-700">
+              {{ channel.code }}
+            </span>
+          </div>
         </div>
 
         <div>
@@ -285,6 +291,7 @@ import { ApolloClient, InMemoryCache, gql, createHttpLink } from '@apollo/client
 import { setContext } from '@apollo/client/link/context'
 import { useAuthStore } from '../stores/auth'
 import AssetSelector from '../components/AssetSelector.vue'
+import { getChannelTokenFromQuery } from '../utils/channelToken.js'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -364,6 +371,11 @@ const GET_PRODUCT_QUERY = gql`
     product(id: $id) {
       id
       name
+      channels {
+        id
+        code
+        token
+      }
       variants {
         id
         name
@@ -469,11 +481,13 @@ const fetchProduct = async () => {
   loading.value = true
   error.value = ''
   try {
-    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
+    const channelToken = getChannelTokenFromQuery() || (authStore.activeChannel ? authStore.activeChannel.token : null)
     apolloClient = createApolloClient(authStore.token, channelToken)
+    // Create Apollo client without channel token to get ALL channels!
+    const apolloClientNoChannel = createApolloClient(authStore.token, null)
 
     const [productResult, assetsResult] = await Promise.all([
-      apolloClient.query({
+      apolloClientNoChannel.query({
         query: GET_PRODUCT_QUERY,
         variables: { id: route.params.productId },
         fetchPolicy: 'network-only'

@@ -11,6 +11,9 @@
             <span class="text-gray-300">
               <span class="font-semibold text-blue-300">{{ authStore.user?.identifier }}</span>
             </span>
+            <span v-if="currentChannelInfo" class="px-3 py-1 bg-yellow-600/30 text-yellow-300 rounded-full text-sm">
+              Current Channel: {{ currentChannelInfo.name }} (token: {{ currentChannelInfo.token }})
+            </span>
             <span v-if="authStore.activeChannel" class="px-3 py-1 bg-blue-600/30 text-blue-300 rounded-full text-sm">
               Channel: {{ authStore.activeChannel.code }} ({{ authStore.activeChannel.currencyCode }})
             </span>
@@ -70,7 +73,8 @@
 
 <script setup>
 import { useAuthStore } from './stores/auth.js'
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
+import { getChannelTokenFromQuery } from './utils/channelToken.js'
 
 // Initialize auth store
 const authStore = useAuthStore()
@@ -79,6 +83,13 @@ const authStore = useAuthStore()
 const handleLogout = () => {
   authStore.logout()
 }
+
+// Get channel mapping from env
+const channelMapping = JSON.parse(import.meta.env.VITE_CHANNEL_MAPPING || '[]')
+const currentChannelToken = computed(() => getChannelTokenFromQuery())
+const currentChannelInfo = computed(() => {
+  return channelMapping.find(c => c.token === currentChannelToken.value) || null
+})
 
 // Fetch user channels on mount if authenticated
 onMounted(() => {
