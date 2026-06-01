@@ -14,16 +14,20 @@ const LoginPage = () => import('../pages/LoginPage.vue')
 const routes = [
   {
     path: '/',
-    name: 'ProductList',
-    component: ProductList,
+    name: 'Search',
+    component: SearchPage,
     meta: {
       requiresAuth: true
     }
   },
   {
     path: '/search',
-    name: 'Search',
-    component: SearchPage,
+    redirect: '/'
+  },
+  {
+    path: '/products',
+    name: 'ProductList',
+    component: ProductList,
     meta: {
       requiresAuth: true
     }

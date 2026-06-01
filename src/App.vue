@@ -25,35 +25,40 @@
       <!-- Navigation menu for authenticated users -->
       <div v-if="authStore.isAuthenticated" class="mb-6 bg-dark-200 p-4 rounded-md border border-dark-100">
         <nav class="flex flex-wrap gap-4">
+          
           <router-link to="/" class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
-            active-class="bg-primary">
-            Product List
-          </router-link>
-          <router-link to="/search" class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
             active-class="bg-primary">
             Search
           </router-link>
-          <router-link to="/channels/clone"
+
+          <router-link to="/products" class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
+            active-class="bg-primary">
+            Product List
+          </router-link>
+
+
+
+          <!-- <router-link to="/channels/clone"
             v-if="authStore.channels.length > 1"
             class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
             active-class="bg-primary">
             Clone Channel
-          </router-link>
-          <router-link to="/import"
+          </router-link> -->
+          <!-- <router-link to="/import"
             class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
             active-class="bg-primary">
             Import
-          </router-link>
-          <router-link to="/import/product"
+          </router-link> -->
+          <!-- <router-link to="/import/product"
             class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
             active-class="bg-primary">
             Import Product
-          </router-link>
-          <router-link to="/i18n/zh"
+          </router-link> -->
+          <!-- <router-link to="/i18n/zh"
             class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
             active-class="bg-primary">
             i18n(zh-cn)
-          </router-link>
+          </router-link> -->
         </nav>
       </div>
 

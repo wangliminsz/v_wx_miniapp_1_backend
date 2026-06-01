@@ -129,17 +129,16 @@
 
 
 
-                                    <button
-                                    @click="toggleProductEnabled(product)"
-                                    :disabled="isUpdatingEnabled[product.id]"
-                                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                                    :class="product.enabled ? 'bg-green-600' : 'bg-gray-600'"
-                                    title="Toggle product enabled">
-                                    <span
-                                        class="pointer-events-none inline-block h-5 w-5 translate-x-0 transform rounded-full bg-white shadow transition duration-200 ease-in-out"
-                                        :class="product.enabled ? 'translate-x-5' : 'translate-x-0'">
-                                    </span>
-                                </button>
+                                    <!-- <button @click="toggleProductEnabled(product)"
+                                        :disabled="isUpdatingEnabled[product.id]"
+                                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                                        :class="product.enabled ? 'bg-green-600' : 'bg-gray-600'"
+                                        title="Toggle product enabled">
+                                        <span
+                                            class="pointer-events-none inline-block h-5 w-5 translate-x-0 transform rounded-full bg-white shadow transition duration-200 ease-in-out"
+                                            :class="product.enabled ? 'translate-x-5' : 'translate-x-0'">
+                                        </span>
+                                    </button> -->
                                 </div>
 
                                 <div class="flex flex-row items-center gap-2">
