@@ -39,6 +39,10 @@
             Product List
           </router-link>
 
+          <router-link to="/products/paginated" class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
+            active-class="bg-primary">
+            Product by Page
+          </router-link>
 
 
           <!-- <router-link to="/channels/clone"

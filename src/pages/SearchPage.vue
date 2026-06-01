@@ -46,6 +46,56 @@
           Found {{ totalCount }} result(s)
         </div>
 
+        <div v-if="!isSingleChannel" class="flex items-center gap-2">
+          <label for="channelSelect" class="font-bold text-blue-300">By Channel:</label>
+          <select id="channelSelect" v-model="selectedChannel"
+            class="px-4 py-2 bg-dark-200 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/50 transition-colors">
+            <option :value="null">All Channels</option>
+            <option v-for="channel in channels" :key="channel.id" :value="channel">
+              {{ channel.code }} ({{ channel.currencyCode }})
+            </option>
+          </select>
+        </div>
+
+        <div v-else-if="displaySelectedChannel" class="flex items-center gap-2">
+          <span class="font-bold text-blue-300">Current Channel:</span>
+          <span class="px-3 py-2 bg-dark-200 text-gray-300 rounded-md border border-dark-100">
+            {{ displaySelectedChannel.code }} ({{ displaySelectedChannel.currencyCode }})
+          </span>
+        </div>
+      </div>
+
+      <!-- Product selection info and buttons -->
+      <div v-if="products.length > 0" class="mb-6 p-4 bg-dark-200 rounded-md">
+        <div class="flex flex-row justify-between mr-10">
+          <div>
+            <p class="text-gray-200 text-xs">
+              Selected: {{ selectedProducts.length }}
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-2 flex gap-2 flex-wrap">
+          <div class="flex gap-2">
+
+            <button @click="showAssignChannelModal = true" :disabled="selectedProducts.length === 0 || isAssigningToChannel"
+              class="px-4 py-2 bg-purple-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Assign selected products to a channel">
+              {{ isAssigningToChannel ? 'Assigning...' : 'Assign to Channel' }}
+            </button>
+            
+            <button @click="removeFromChannel" :disabled="selectedProducts.length === 0 || isRemovingFromChannel"
+              class="px-4 py-2 bg-orange-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Remove selected products from current channel">
+              {{ isRemovingFromChannel ? 'Removing...' : 'Remove from Channel' }}
+            </button>
+
+            <button @click="clearSelection" :disabled="selectedProducts.length === 0"
+              class="px-4 py-2 bg-gray-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+              Clear Selection
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Products display - Card or List view -->
@@ -152,11 +202,17 @@
                 </div>
 
                 <div class="flex flex-wrap gap-2 mt-2">
-                  <span v-for="collection in product.collections" :key="collection.id"
-                    class="text-xs bg-dark-300 text-gray-300 px-2 py-1 rounded-full">
-                    {{ collection.name }}
-                  </span>
-                </div>
+              <span v-for="collection in product.collections" :key="collection.id"
+                class="text-xs bg-dark-300 text-gray-300 px-2 py-1 rounded-full">
+                {{ collection.name }}
+              </span>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-2">
+              <span v-for="channel in product.channels" :key="channel.id"
+                class="text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded-full border border-blue-700">
+                {{ channel.code }}
+              </span>
+            </div>
 
               </div>
 
@@ -548,10 +604,57 @@
         @confirm="updateProductAssets" @close="closeAssetSelector" />
     </Transition>
   </Teleport>
+
+  <!-- Assign to Channel Modal -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="showAssignChannelModal" class="fixed inset-0 z-50 flex items-center justify-center"
+        style="background: rgba(0,0,0,0.5);">
+        <div class="relative rounded-lg shadow-xl w-80 border border-gray-600"
+          style="background-color: #1f2937;">
+          <div class="p-4 text-center">
+            <h3 class="text-sm font-semibold text-white mb-2">Assign to Channel</h3>
+            <p class="text-gray-400 text-xs mb-4">
+              Select a channel to assign {{ selectedProducts.length }} product(s) to
+            </p>
+            
+            <div class="mb-4">
+              <label class="block text-gray-300 text-sm mb-2 text-left">Channel</label>
+              <select v-model="selectedAssignChannel"
+                class="w-full px-4 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none">
+                <option :value="null" disabled>Select a channel</option>
+                <option v-for="channel in channels" :key="channel.id" :value="channel">
+                  {{ channel.code }} ({{ channel.currencyCode }})
+                </option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-gray-300 text-sm mb-2 text-left">Price conversion factor</label>
+              <input type="number" v-model.number="priceFactor" step="0.01" min="0.01"
+                class="w-full px-4 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none">
+            </div>
+
+            <div class="flex gap-2">
+              <button @click="showAssignChannelModal = false; selectedAssignChannel = null; priceFactor = 1;"
+                class="flex-1 px-3 py-1.5 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-md transition-colors">
+                Cancel
+              </button>
+              <button @click="assignToChannel"
+                :disabled="!selectedAssignChannel || isAssigningToChannel"
+                class="flex-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {{ isAssigningToChannel ? 'Assigning...' : 'Assign' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ApolloClient, InMemoryCache, gql, createHttpLink } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
@@ -559,6 +662,7 @@ import { setContext } from '@apollo/client/link/context'
 // Import auth store
 import { useAuthStore } from '../stores/auth'
 import AssetSelector from '../components/AssetSelector.vue'
+import { getChannelTokenFromQuery } from '../utils/channelToken'
 
 // Get router
 const router = useRouter()
@@ -612,6 +716,24 @@ const isUpdatingAssets = ref(false)
 const showAssetMenu = ref(null) // { productId, assetId }
 const menuRefs = ref({}) // key: `${productId}-${assetId}`, value: DOM element
 const menuPosition = ref({ x: 0, y: 0 })
+
+// Channel management state
+const isRemovingFromChannel = ref(false)
+const isAssigningToChannel = ref(false)
+const showAssignChannelModal = ref(false)
+const selectedAssignChannel = ref(null)
+const priceFactor = ref(1)
+const activeChannel = ref(null)
+const selectedChannel = ref(null)
+
+// Computed properties
+const channels = computed(() => authStore.channels)
+const isSingleChannel = computed(() => authStore.channels.length <= 1)
+const displaySelectedChannel = computed(() => {
+  if (selectedChannel.value) return selectedChannel.value
+  if (authStore.activeChannel) return authStore.activeChannel
+  return null
+})
 
 // Close menu when clicking outside
 const handleClickOutside = (event) => {
@@ -769,6 +891,11 @@ const GET_FULL_PRODUCT_DATA_QUERY = gql`
         id
         name
       }
+      channels {
+        id
+        code
+        token
+      }
       facetValues {
         id
         name
@@ -833,8 +960,31 @@ const GET_PRODUCT_TECH_DOCS_QUERY = gql`
   }
 `
 
+const REMOVE_PRODUCTS_FROM_CHANNEL_MUTATION = gql`
+  mutation RemoveProductsFromChannel($input: RemoveProductsFromChannelInput!) {
+    removeProductsFromChannel(input: $input) {
+      id
+      name
+      slug
+    }
+  }
+`
+
+const ADD_PRODUCTS_TO_CHANNEL_MUTATION = gql`
+  mutation AssignProductsToChannel($input: AssignProductsToChannelInput!) {
+    assignProductsToChannel(input: $input) {
+      id
+      name
+      slug
+    }
+  }
+`
+
+let apolloClient = null
+
 // Create Apollo Client with token and channel token
-const createApolloClient = (channelToken = null) => {
+const createApolloClient = (authToken, channelToken = null) => {
+  console.log('createApolloClient', { authToken, channelToken })
   const httpLink = createHttpLink({
     uri: import.meta.env.VITE_VENDURE_ADMIN_API_URL,
     fetchOptions: {
@@ -845,11 +995,12 @@ const createApolloClient = (channelToken = null) => {
   const authLink = setContext((_, { headers }) => {
     const requestHeaders = {
       ...headers,
-      authorization: authStore.token ? `Bearer ${authStore.token}` : '',
+      authorization: authToken ? `Bearer ${authToken}` : '',
     }
     if (channelToken) {
       requestHeaders['vendure-token'] = channelToken
     }
+    console.log('Sending request headers', requestHeaders)
     return { headers: requestHeaders }
   })
 
@@ -870,13 +1021,18 @@ const performSearch = async () => {
   hasSearched.value = true
 
   try {
-    // Use VITE_CHANNEL_TOKEN from env if available, otherwise use active channel from auth store
-    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
-    const apolloClient = createApolloClient(channelToken)
+    // Use getChannelTokenFromQuery if available, otherwise use active channel from auth store
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
+    const apolloClientInstance = createApolloClient(authStore.token, channelToken)
 
     // Fetch facets first
     try {
-      const facetsResult = await apolloClient.query({
+      const facetsResult = await apolloClientInstance.query({
         query: GET_FACETS_QUERY,
         fetchPolicy: 'network-only'
       })
@@ -887,7 +1043,7 @@ const performSearch = async () => {
       console.error('Failed to fetch facets:', err)
     }
 
-    const result = await apolloClient.query({
+    const result = await apolloClientInstance.query({
       query: SEARCH_QUERY,
       variables: {
         term: searchTerm.value,
@@ -906,8 +1062,7 @@ const performSearch = async () => {
         const productsWithFullData = await Promise.all(
           searchItems.map(async (searchProduct) => {
             try {
-              const apolloClient = createApolloClient(channelToken)
-              const productResult = await apolloClient.query({
+              const productResult = await apolloClientInstance.query({
                 query: GET_FULL_PRODUCT_DATA_QUERY,
                 variables: { id: searchProduct.productId },
                 fetchPolicy: 'network-only'
@@ -1028,7 +1183,7 @@ const uploadFile = async (file, channelToken = null) => {
 
 const updateProductTechDocs = async (productId, assetIds, channelToken = null) => {
   try {
-    const apolloClient = createApolloClient(channelToken)
+    const apolloClientInstance = createApolloClient(authStore.token, channelToken)
     const UPDATE_PRODUCT_DOCS_MUTATION = gql`
       mutation UpdateProductDocs($input: UpdateProductInput!) {
         updateProduct(input: $input) {
@@ -1039,7 +1194,7 @@ const updateProductTechDocs = async (productId, assetIds, channelToken = null) =
         }
       }
     `
-    const result = await apolloClient.mutate({
+    const result = await apolloClientInstance.mutate({
       mutation: UPDATE_PRODUCT_DOCS_MUTATION,
       variables: {
         input: { id: productId, customFields: { techDocsIds: assetIds } }
@@ -1062,7 +1217,12 @@ const handleDocUpload = async (event, product) => {
 
   try {
     // Get channel token
-    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
     const asset = await uploadFile(file, channelToken)
     if (asset && asset.id) {
       // Gather pure asset IDs
@@ -1112,6 +1272,99 @@ const toggleProductSelection = (product) => {
   }
 }
 
+const clearSelection = () => {
+  selectedProducts.value = []
+}
+
+const removeFromChannel = async () => {
+  if (selectedProducts.value.length === 0) {
+    alert('Please select at least one product to remove from the channel.')
+    return
+  }
+
+  if (!confirm(`Are you sure you want to remove ${selectedProducts.value.length} product(s) from the current channel?`)) {
+    return
+  }
+
+  isRemovingFromChannel.value = true
+  try {
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
+    
+    const channelId = selectedChannel.value?.id || authStore.activeChannel?.id
+    
+    if (!channelId) {
+      throw new Error('No active channel found. Please select a channel first.')
+    }
+    
+    apolloClient = createApolloClient(authStore.token, channelToken)
+    
+    const { data } = await apolloClient.mutate({
+      mutation: REMOVE_PRODUCTS_FROM_CHANNEL_MUTATION,
+      variables: {
+        input: {
+          channelId: channelId,
+          productIds: selectedProducts.value.map(p => p.id)
+        }
+      }
+    })
+    
+    alert(`Successfully removed ${selectedProducts.value.length} product(s) from the channel.`)
+    
+    // Refresh product list
+    await performSearch()
+    clearSelection()
+  } catch (err) {
+    console.error('Error removing products from channel:', err)
+    alert(`Failed to remove products: ${err.message}`)
+  } finally {
+    isRemovingFromChannel.value = false
+  }
+}
+
+const assignToChannel = async () => {
+  if (selectedProducts.value.length === 0 || !selectedAssignChannel.value) {
+    return
+  }
+
+  isAssigningToChannel.value = true
+  try {
+    // Use CURRENT channel token (not target channel's) so the mutation knows the original prices
+    const currentChannelToken = getChannelTokenFromQuery()
+    apolloClient = createApolloClient(authStore.token, currentChannelToken)
+    
+    const { data } = await apolloClient.mutate({
+      mutation: ADD_PRODUCTS_TO_CHANNEL_MUTATION,
+      variables: {
+        input: {
+          channelId: selectedAssignChannel.value.id,
+          productIds: selectedProducts.value.map(p => p.id),
+          priceFactor: priceFactor.value
+        }
+      }
+    })
+    
+    alert(`Successfully assigned ${selectedProducts.value.length} product(s) to ${selectedAssignChannel.value.code}!`)
+    
+    // Refresh product list
+    await performSearch()
+    clearSelection()
+    // Close modal
+    showAssignChannelModal.value = false
+    selectedAssignChannel.value = null
+    priceFactor.value = 1
+  } catch (err) {
+    console.error('Error assigning products to channel:', err)
+    alert(`Failed to assign products: ${err.message}`)
+  } finally {
+    isAssigningToChannel.value = false
+  }
+}
+
 // Product description editing functions (updated)
 const getProductDescription = (product) => {
   if (product.translations && product.translations.length > 0) {
@@ -1140,9 +1393,14 @@ const saveProductDescription = async (product) => {
 
   isUpdatingDescription.value = true
   try {
-    // Use active channel from auth store if available
-    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
-    const apolloClient = createApolloClient(channelToken)
+    // Use getChannelTokenFromQuery if available
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
+    const apolloClientInstance = createApolloClient(authStore.token, channelToken)
 
     // Find the existing translation to update or create a new one
     let translationInput
@@ -1161,7 +1419,7 @@ const saveProductDescription = async (product) => {
       }
     }
 
-    const result = await apolloClient.mutate({
+    const result = await apolloClientInstance.mutate({
       mutation: UPDATE_PRODUCT_MUTATION,
       variables: {
         input: {
@@ -1218,8 +1476,14 @@ const updateProductAssets = async (selectedIds) => {
 
   isUpdatingAssets.value = true
   try {
-    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
-    const apolloClient = createApolloClient(channelToken)
+    // Use getChannelTokenFromQuery if available
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
+    const apolloClientInstance = createApolloClient(authStore.token, channelToken)
 
     const UPDATE_PRODUCT_ASSETS_MUTATION = gql`
             mutation UpdateProductAssets($input: UpdateProductInput!) {
@@ -1239,7 +1503,7 @@ const updateProductAssets = async (selectedIds) => {
       mutationInput.featuredAssetId = selectedIds || null
     }
 
-    const result = await apolloClient.mutate({
+    const result = await apolloClientInstance.mutate({
       mutation: UPDATE_PRODUCT_ASSETS_MUTATION,
       variables: {
         input: mutationInput
@@ -1266,8 +1530,14 @@ const updateProductAssets = async (selectedIds) => {
 
 const removeAsset = async (product, assetId) => {
   try {
-    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
-    const apolloClient = createApolloClient(channelToken)
+    // Use getChannelTokenFromQuery if available
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
+    const apolloClientInstance = createApolloClient(authStore.token, channelToken)
 
     const UPDATE_PRODUCT_ASSETS_MUTATION = gql`
             mutation UpdateProductAssets($input: UpdateProductInput!) {
@@ -1292,7 +1562,7 @@ const removeAsset = async (product, assetId) => {
       mutationInput.featuredAssetId = null
     }
 
-    const result = await apolloClient.mutate({
+    const result = await apolloClientInstance.mutate({
       mutation: UPDATE_PRODUCT_ASSETS_MUTATION,
       variables: {
         input: mutationInput
@@ -1317,8 +1587,14 @@ const removeAsset = async (product, assetId) => {
 const setFeaturedAsset = async (product, assetId) => {
   showAssetMenu.value = null
   try {
-    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
-    const apolloClient = createApolloClient(channelToken)
+    // Use getChannelTokenFromQuery if available
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
+    const apolloClientInstance = createApolloClient(authStore.token, channelToken)
 
     const UPDATE_PRODUCT_ASSETS_MUTATION = gql`
             mutation UpdateProductAssets($input: UpdateProductInput!) {
@@ -1330,7 +1606,7 @@ const setFeaturedAsset = async (product, assetId) => {
             }
         `
 
-    const result = await apolloClient.mutate({
+    const result = await apolloClientInstance.mutate({
       mutation: UPDATE_PRODUCT_ASSETS_MUTATION,
       variables: {
         input: {
@@ -1384,8 +1660,14 @@ const cancelEditingFacets = () => {
 const toggleProductFacet = async (product, facetValue, isSelected) => {
   isUpdatingFacets.value = true
   try {
-    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
-    const apolloClient = createApolloClient(channelToken)
+    // Use getChannelTokenFromQuery if available
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
+    const apolloClientInstance = createApolloClient(authStore.token, channelToken)
 
     const currentFacetValueIds = (product.facetValues || []).map(fv => fv.id)
     let newFacetValueIds
@@ -1395,7 +1677,7 @@ const toggleProductFacet = async (product, facetValue, isSelected) => {
       newFacetValueIds = currentFacetValueIds.filter(id => id !== facetValue.id)
     }
 
-    const result = await apolloClient.mutate({
+    const result = await apolloClientInstance.mutate({
       mutation: UPDATE_PRODUCT_MUTATION,
       variables: {
         input: {
@@ -1461,7 +1743,13 @@ const confirmDelete = async () => {
     const existingDocIds = product.customFields?.techDocs?.map(doc => doc.id) || []
     const updatedDocIds = existingDocIds.filter(id => id !== docId)
 
-    const channelToken = import.meta.env.VITE_CHANNEL_TOKEN || (authStore.activeChannel ? authStore.activeChannel.token : null)
+    // Use getChannelTokenFromQuery if available
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
     const updatedProduct = await updateProductTechDocs(product.id, updatedDocIds, channelToken)
 
     if (updatedProduct) {
@@ -1508,6 +1796,18 @@ const getFileIcon = (filename) => {
   return iconMap[ext] || 'TXT.svg' // Default to TXT if unknown
 }
 
+// Watchers
+const unwatchToken = watch(() => authStore.token, () => {
+  if (hasSearched) {
+    performSearch()
+  }
+})
+const unwatchChannel = watch(() => selectedChannel.value, () => {
+  if (hasSearched) {
+    performSearch()
+  }
+})
+
 // Lifecycle hooks
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
@@ -1515,6 +1815,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  unwatchToken()
+  unwatchChannel()
 })
 </script>
 

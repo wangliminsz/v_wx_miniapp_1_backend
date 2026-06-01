@@ -596,8 +596,14 @@
                             </select>
                         </div>
 
+                        <div class="mb-4">
+                            <label class="block text-gray-300 text-sm mb-2 text-left">Price conversion factor</label>
+                            <input type="number" v-model.number="priceFactor" step="0.01" min="0.01"
+                                class="w-full px-4 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none">
+                        </div>
+
                         <div class="flex gap-2">
-                            <button @click="showAssignChannelModal = false; selectedAssignChannel = null;"
+                            <button @click="showAssignChannelModal = false; selectedAssignChannel = null; priceFactor = 1;"
                                 class="flex-1 px-3 py-1.5 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-md transition-colors">
                                 Cancel
                             </button>
@@ -705,6 +711,7 @@ const isRemovingFromChannel = ref(false)
 const isAssigningToChannel = ref(false)
 const showAssignChannelModal = ref(false)
 const selectedAssignChannel = ref(null)
+const priceFactor = ref(1)
 
 const activeChannel = ref(null)
 
@@ -1326,16 +1333,17 @@ const assignToChannel = async () => {
 
     isAssigningToChannel.value = true
     try {
-        // We need to create an Apollo client for the target channel? Or can we use any?
-        // Let's use the target channel's token
-        apolloClient = createApolloClient(authStore.token, selectedAssignChannel.value.token)
+        // Use CURRENT channel token (not target channel's) so the mutation knows the original prices
+        const currentChannelToken = getChannelTokenFromQuery()
+        apolloClient = createApolloClient(authStore.token, currentChannelToken)
         
         const { data } = await apolloClient.mutate({
             mutation: ADD_PRODUCTS_TO_CHANNEL_MUTATION,
             variables: {
                 input: {
                     channelId: selectedAssignChannel.value.id,
-                    productIds: selectedProducts.value.map(p => p.id)
+                    productIds: selectedProducts.value.map(p => p.id),
+                    priceFactor: priceFactor.value
                 }
             }
         })
@@ -1348,6 +1356,7 @@ const assignToChannel = async () => {
         // Close modal
         showAssignChannelModal.value = false
         selectedAssignChannel.value = null
+        priceFactor.value = 1
     } catch (err) {
         console.error('Error assigning products to channel:', err)
         alert(`Failed to assign products: ${err.message}`)

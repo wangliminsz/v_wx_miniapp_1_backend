@@ -10,6 +10,7 @@ const ImportProductPage = () => import('../pages/ImportProductPage.vue')
 const I18nZhPage = () => import('../pages/I18nZhPage.vue')
 const ManageVariants = () => import('../pages/ManageVariants.vue')
 const LoginPage = () => import('../pages/LoginPage.vue')
+const PaginatedProductList = () => import('../pages/PaginatedProductList.vue')
 
 const routes = [
   {
@@ -28,6 +29,14 @@ const routes = [
     path: '/products',
     name: 'ProductList',
     component: ProductList,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/products/paginated',
+    name: 'PaginatedProductList',
+    component: PaginatedProductList,
     meta: {
       requiresAuth: true
     }
