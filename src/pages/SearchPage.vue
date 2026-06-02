@@ -90,12 +90,28 @@
               {{ isRemovingFromChannel ? 'Removing...' : 'Remove from Channel' }}
             </button>
 
+            <button @click="exportSelectedProducts" :disabled="selectedProducts.length === 0 || isExporting"
+              class="px-4 py-2 bg-green-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Export only the selected products">
+              {{ isExporting ? 'Exporting...' : 'Export Selected' }}
+            </button>
+
+            <button @click="exportAllProducts" :disabled="isExporting"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Export all products regardless of selection">
+              {{ isExporting ? 'Exporting...' : 'Export All' }}
+            </button>
+
             <button @click="clearSelection" :disabled="selectedProducts.length === 0"
               class="px-4 py-2 bg-gray-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed">
               Clear Selection
             </button>
           </div>
         </div>
+
+        <p v-if="exportError" class="text-red-400 mt-3 text-sm">
+          Error: {{ exportError }}
+        </p>
       </div>
 
       <!-- Products display - Card or List view -->
@@ -681,6 +697,8 @@ const viewMode = ref('list') // Default to list view
 const searchHistory = ref([]) // Search history array
 const selectedProducts = ref([])
 const facets = ref([])
+const isExporting = ref(false)
+const exportError = ref(null)
 
 const uploadingProductId = ref(null)
 const uploadSuccessProductId = ref(null)
@@ -857,6 +875,9 @@ const SEARCH_QUERY = gql`
         }
       }
     }
+    activeChannel {
+      id code token currencyCode
+    }
   }
 `
 
@@ -944,6 +965,15 @@ const UPDATE_PRODUCT_MUTATION = gql`
         languageCode
         name
         description
+      }
+      facetValues {
+        id
+        name
+        facet {
+          id
+          name
+          code
+        }
       }
     }
   }
@@ -1131,6 +1161,10 @@ const performSearch = async () => {
       }
     }
 
+    if (result.data.activeChannel) {
+      activeChannel.value = result.data.activeChannel
+    }
+
     // Add search term to history after successful search
     addToSearchHistory(searchTerm.value)
   } catch (err) {
@@ -1295,7 +1329,7 @@ const removeFromChannel = async () => {
       channelToken = authStore.activeChannel.token
     }
     
-    const channelId = selectedChannel.value?.id || authStore.activeChannel?.id
+    const channelId = selectedChannel.value?.id || activeChannel.value?.id || authStore.activeChannel?.id || channels.value.find(c => c.token === channelToken)?.id
     
     if (!channelId) {
       throw new Error('No active channel found. Please select a channel first.')
@@ -1793,7 +1827,195 @@ const getFileIcon = (filename) => {
   const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp']
   if (imageExts.includes(ext)) return null // Use actual image preview
 
-  return iconMap[ext] || 'TXT.svg' // Default to TXT if unknown
+  return iconMap[ext] || 'TXT.svg'
+}
+
+const PRODUCT_EXPORT_QUERY = gql`
+  query FullProductExportQuery {
+    products(options: { take: 1000 }) {
+      items {
+        id name slug description
+        featuredAsset { id name source }
+        assets { id name source }
+        collections { id slug name }
+        channels { id code }
+        facetValues { id code facet { id code } }
+        variants {
+          id name sku price currencyCode
+          taxCategory { id name }
+          stockLevels { stockLocationId stockOnHand }
+          assets { id source }
+          facetValues { id code facet { id code } }
+          featuredAsset { id source }
+          prices { price currencyCode }
+          options { id code group { id code } }
+        }
+      }
+    }
+  }
+`
+
+const exportSelectedProducts = async () => {
+  exportError.value = null
+  isExporting.value = true
+  try {
+    if (selectedProducts.value.length === 0) throw new Error('Please select at least one product.')
+
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
+
+    const apolloClientInstance = createApolloClient(authStore.token, channelToken)
+
+    const { data } = await apolloClientInstance.query({
+      query: PRODUCT_EXPORT_QUERY,
+      fetchPolicy: 'network-only',
+    })
+
+    if (!data?.products?.items) throw new Error('No data received from API.')
+
+    const selectedProductIds = new Set(selectedProducts.value.map(p => p.id))
+    const selectedProductsData = data.products.items.filter(p => selectedProductIds.has(p.id))
+
+    const flatData = []
+    selectedProductsData.forEach(product => {
+      const collectionSlugs = product.collections.map(c => c.slug).join('|')
+      const collectionNames = product.collections.map(c => c.name).join(', ')
+      const channelCodes = product.channels.map(ch => ch.code).join('|')
+      const productFacetValues = product.facetValues.map(fv => `${fv.facet?.code || 'unknown'}:${fv.code}`).join('|')
+      const productAssets = product.assets.map(asset => asset.source).join('|')
+
+      if (product.variants.length === 0) {
+        flatData.push({
+          productId: product.id, productName: product.name, productSlug: product.slug || '',
+          productDescription: product.description || '', featuredAssetSource: product.featuredAsset?.source || '',
+          productAssets, productFacetValues, variantId: '', variantName: '', variantSku: '', variantPrice: '',
+          variantCurrencyCode: '', taxCategoryName: '', variantFeaturedAsset: '', variantAssets: '', variantFacetValues: '',
+          collections: collectionSlugs, collectionNames: collectionNames, channels: channelCodes, stockLevels: '',
+        })
+      } else {
+        product.variants.forEach(variant => {
+          let stockLevelString = '';
+          if (variant.stockLevels?.length > 0) {
+            stockLevelString = variant.stockLevels.map(sl => `${sl.stockLocationId || 'default'}:${Math.trunc(Number(sl.stockOnHand)) || 0}`).join(';');
+          }
+
+          let multiChannelPrices = '';
+          if (variant.prices?.length > 0) {
+            multiChannelPrices = variant.prices.map(price => `${price.channelId}:${(price.price / 100).toFixed(2)}:${price.currencyCode}`).join('|');
+          }
+
+          flatData.push({
+            productId: product.id, productName: product.name, productSlug: product.slug || '',
+            productDescription: product.description || '', featuredAssetSource: product.featuredAsset?.source || '',
+            productAssets, productFacetValues, variantId: variant.id, variantName: variant.name, variantSku: variant.sku || '',
+            variantPrice: variant.price ? (variant.price / 100).toFixed(2) : '', variantCurrencyCode: variant.currencyCode || '',
+            variantFeaturedAsset: variant.featuredAsset?.source || '', taxCategoryName: variant.taxCategory?.name || '',
+            variantAssets: variant.assets.map(a => a.source).join('|'), variantFacetValues: variant.facetValues.map(fv => `${fv.facet?.code || 'unknown'}:${fv.code}`).join('|'),
+            options: variant.options.map(o => `${o.group.code}:${o.code}`).join('|'), collections: collectionSlugs,
+            collectionNames, channels: channelCodes, stockLevels: stockLevelString, multiChannelPrices,
+          })
+        })
+      }
+    })
+
+    const csvString = convertToCsv(flatData)
+    downloadBlob(csvString, `vendure-product-export-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;')
+  } catch (err) {
+    exportError.value = err.message
+  } finally { isExporting.value = false }
+}
+
+const exportAllProducts = async () => {
+  exportError.value = null
+  isExporting.value = true
+  try {
+    let channelToken = getChannelTokenFromQuery() || null
+    if (selectedChannel.value) {
+      channelToken = selectedChannel.value.token
+    } else if (authStore.activeChannel && !getChannelTokenFromQuery()) {
+      channelToken = authStore.activeChannel.token
+    }
+
+    const apolloClientInstance = createApolloClient(authStore.token, channelToken)
+
+    const { data } = await apolloClientInstance.query({
+      query: PRODUCT_EXPORT_QUERY,
+      fetchPolicy: 'network-only',
+    })
+
+    if (!data?.products?.items) throw new Error('No data received from API.')
+
+    const flatData = []
+    data.products.items.forEach(product => {
+      const collectionSlugs = product.collections.map(c => c.slug).join('|')
+      const collectionNames = product.collections.map(c => c.name).join(', ')
+      const channelCodes = product.channels.map(ch => ch.code).join('|')
+      const productFacetValues = product.facetValues.map(fv => `${fv.facet?.code || 'unknown'}:${fv.code}`).join('|')
+      const productAssets = product.assets.map(asset => asset.source).join('|')
+
+      if (product.variants.length === 0) {
+        flatData.push({
+          productId: product.id, productName: product.name, productSlug: product.slug || '',
+          productDescription: product.description || '', featuredAssetSource: product.featuredAsset?.source || '',
+          productAssets, productFacetValues, variantId: '', variantName: '', variantSku: '', variantPrice: '',
+          variantCurrencyCode: '', taxCategoryName: '', variantFeaturedAsset: '', variantAssets: '', variantFacetValues: '',
+          collections: collectionSlugs, collectionNames: collectionNames, channels: channelCodes, stockLevels: '',
+        })
+      } else {
+        product.variants.forEach(variant => {
+          let stockLevelString = '';
+          if (variant.stockLevels?.length > 0) {
+            stockLevelString = variant.stockLevels.map(sl => `${sl.stockLocationId || 'default'}:${Math.trunc(Number(sl.stockOnHand)) || 0}`).join(';');
+          }
+
+          flatData.push({
+            productId: product.id, productName: product.name, productSlug: product.slug || '',
+            productDescription: product.description || '', featuredAssetSource: product.featuredAsset?.source || '',
+            productAssets, productFacetValues, variantId: variant.id, variantName: variant.name, variantSku: variant.sku || '',
+            variantPrice: variant.price ? (variant.price / 100).toFixed(2) : '', variantCurrencyCode: variant.currencyCode || '',
+            variantFeaturedAsset: variant.featuredAsset?.source || '', taxCategoryName: variant.taxCategory?.name || '',
+            variantAssets: variant.assets.map(a => a.source).join('|'), variantFacetValues: variant.facetValues.map(fv => `${fv.facet?.code || 'unknown'}:${fv.code}`).join('|'),
+            options: variant.options.map(o => `${o.group.code}:${o.code}`).join('|'), collections: collectionSlugs,
+            collectionNames, channels: channelCodes, stockLevels: stockLevelString,
+          })
+        })
+      }
+    })
+
+    const csvString = convertToCsv(flatData)
+    downloadBlob(csvString, `vendure-product-export-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;')
+  } catch (err) {
+    exportError.value = err.message
+  } finally { isExporting.value = false }
+}
+
+const convertToCsv = (data) => {
+  if (!data?.length) return ''
+  const headers = Object.keys(data[0])
+  const headerRow = headers.join(',') + '\r\n'
+  const rows = data.map(row => {
+    return headers.map(header => {
+      let cell = row[header] ?? ''
+      return `"${cell.toString().replace(/"/g, '""')}"`
+    }).join(',')
+  })
+  return headerRow + rows.join('\r\n')
+}
+
+const downloadBlob = (content, fileName, contentType) => {
+  const blob = new Blob([content], { type: contentType })
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  window.URL.revokeObjectURL(url)
 }
 
 // Watchers

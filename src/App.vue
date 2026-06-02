@@ -38,10 +38,10 @@
           </router-link>
 
 
-          <router-link to="/products" class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
+          <!-- <router-link to="/products" class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
             active-class="bg-primary">
             Product List
-          </router-link>
+          </router-link> -->
 
 
 

@@ -1040,6 +1040,7 @@ const fetchPaginatedProducts = async () => {
 
     if (data.products && data.products.items) {
       products.value = JSON.parse(JSON.stringify(data.products.items))
+      allProducts.value = JSON.parse(JSON.stringify(data.products.items))
       totalItems.value = data.products.totalItems
     }
 
