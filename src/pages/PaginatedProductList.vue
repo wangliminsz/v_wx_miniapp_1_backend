@@ -15,6 +15,10 @@
 
       <!-- Pagination controls -->
       <div class="flex items-center justify-center gap-3 mb-10">
+        <button @click="firstPage" :disabled="currentPage === 1"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50">
+          First
+        </button>
         <button @click="prevPage" :disabled="currentPage === 1"
           class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50">
           Previous
@@ -32,6 +36,115 @@
           class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50">
           Next
         </button>
+        <button @click="lastPage" :disabled="currentPage >= totalPages"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50">
+          Last
+        </button>
+      </div>
+
+
+
+      <!-- 功能按钮 -->
+      <div class="mb-6 flex flex-wrap items-center gap-4">
+        <!-- <div class="flex items-center gap-2">
+          <label for="collectionFilter" class="font-bold text-blue-300">Filter by Collection:</label>
+          <select id="collectionFilter" v-model="selectedCollection"
+            @change="filterProductsByCollection(selectedCollection)"
+            class="px-4 py-2 bg-dark-200 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/50 transition-colors">
+            <option :value="null">All Collections</option>
+            <option v-for="collection in collections" :key="collection.id" :value="collection.id">
+              {{ '\u00A0'.repeat(collection.level * 2) }}- {{ collection.name }}
+            </option>
+          </select>
+        </div> -->
+
+        <div v-if="!isSingleChannel" class="flex items-center gap-2">
+          <label for="channelSelect" class="font-bold text-blue-300">By Channel:</label>
+          <select id="channelSelect" v-model="selectedChannel"
+            class="px-4 py-2 bg-dark-200 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/50 transition-colors">
+            <option :value="null">All Channels</option>
+            <option v-for="channel in channels" :key="channel.id" :value="channel">
+              {{ channel.code }} ({{ channel.currencyCode }})
+            </option>
+          </select>
+        </div>
+
+        <div v-else-if="displaySelectedChannel" class="flex items-center gap-2">
+          <span class="font-bold text-blue-300">Current Channel:</span>
+          <span class="px-3 py-2 bg-dark-200 text-gray-300 rounded-md border border-dark-100">
+            {{ displaySelectedChannel.code }} ({{ displaySelectedChannel.currencyCode }})
+          </span>
+        </div>
+
+        <button @click="toggleSortOrder"
+          class="px-4 py-2 bg-gray-700 text-white rounded-md text-sm hover:bg-gray-600 transition-colors flex items-center gap-2"
+          title="Sort products by ID">
+          <span class="text-blue-300 font-bold">ID:</span>
+          <svg v-if="sortOrder === 'asc'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mb-6 p-4 bg-dark-200 rounded-md">
+        <div class="flex flex-row justify-between mr-10">
+          <div>
+            <p class="text-blue-300">
+              Showing {{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, totalItems) }} of {{ totalItems }} products
+              <span v-if="selectedCollection"> in {{collections.find(c => c.id ===
+                selectedCollection)?.name}}</span>
+            </p>
+          </div>
+          <div>
+            <p class="text-gray-200 text-xs">
+              Selected: {{ selectedProducts.length }}
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-2 flex gap-2 flex-wrap">
+          <div class="flex gap-2">
+
+            <button @click="showAssignChannelModal = true"
+              :disabled="selectedProducts.length === 0 || isAssigningToChannel"
+              class="px-4 py-2 bg-purple-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Assign selected products to a channel">
+              {{ isAssigningToChannel ? 'Assigning...' : 'Assign to Channel' }}
+            </button>
+
+            <button @click="removeFromChannel" :disabled="selectedProducts.length === 0 || isRemovingFromChannel"
+              class="px-4 py-2 bg-orange-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Remove selected products from current channel">
+              {{ isRemovingFromChannel ? 'Removing...' : 'Remove from Channel' }}
+            </button>
+
+            <button @click="exportSelectedProducts" :disabled="selectedProducts.length === 0 || isExporting"
+              class="px-4 py-2 bg-green-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Export only the selected products">
+              {{ isExporting ? 'Exporting...' : 'Export Selected' }}
+            </button>
+
+            <button @click="exportAllProducts" :disabled="isExporting"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Export all products regardless of selection">
+              {{ isExporting ? 'Exporting...' : 'Export All' }}
+            </button>
+          </div>
+
+          <div class="flex gap-2">
+            <button @click="clearSelection" :disabled="selectedProducts.length === 0"
+              class="px-4 py-2 bg-gray-600 text-white rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+              Clear Selection
+            </button>
+          </div>
+        </div>
+
+        <p v-if="exportError" class="text-red-400 mt-3 text-sm">
+          Error: {{ exportError }}
+        </p>
       </div>
 
 
@@ -72,10 +185,17 @@
                   <div class="flex items-center justify-between gap-3 mb-1">
                     <div class="flex items-center gap-3">
                       <h3 class="text-lg font-semibold text-white truncate">{{ product.name }}</h3>
-                      <router-link :to="{ name: 'ManageVariants', params: { productId: product.id } }"
+                      <!-- <router-link :to="{ name: 'ManageVariants', params: { productId: product.id } }"
                         class="flex-shrink-0 px-3 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-500 transition-colors">
                         Manage variants
-                      </router-link>
+                      </router-link> -->
+
+                      <router-link :to="{ name: 'ManageVariants', params: { productId: product.id }, query: $route.query }"
+                         class="flex-shrink-0 px-3 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-500 transition-colors">
+                         Manage variants
+                       </router-link>
+
+
                     </div>
 
 
@@ -363,7 +483,7 @@
                     </div>
                     <span v-if="product.customFields.techDocs.length > 5" class="text-xs text-gray-400">+{{
                       product.customFields.techDocs.length - 5
-                      }}</span>
+                    }}</span>
                   </div>
                 </div>
 
@@ -394,6 +514,10 @@
 
       <!-- Pagination controls -->
       <div class="flex items-center justify-center gap-3 mt-10">
+        <button @click="firstPage" :disabled="currentPage === 1"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50">
+          First
+        </button>
         <button @click="prevPage" :disabled="currentPage === 1"
           class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50">
           Previous
@@ -410,6 +534,10 @@
         <button @click="nextPage" :disabled="currentPage >= totalPages"
           class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50">
           Next
+        </button>
+        <button @click="lastPage" :disabled="currentPage >= totalPages"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50">
+          Last
         </button>
       </div>
     </div>
@@ -961,6 +1089,13 @@ const fetchPaginatedProducts = async () => {
   }
 }
 
+const firstPage = () => {
+  if (currentPage.value !== 1) {
+    currentPage.value = 1
+    fetchPaginatedProducts()
+  }
+}
+
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--
@@ -971,6 +1106,13 @@ const prevPage = () => {
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
     currentPage.value++
+    fetchPaginatedProducts()
+  }
+}
+
+const lastPage = () => {
+  if (currentPage.value !== totalPages.value) {
+    currentPage.value = totalPages.value
     fetchPaginatedProducts()
   }
 }
@@ -1472,15 +1614,15 @@ const updateProductAssets = async (selectedIds) => {
 
     apolloClient = createApolloClient(authStore.token, channelToken)
 
-    // const UPDATE_PRODUCT_ASSETS_MUTATION = gql`
-    //     mutation UpdateProductAssets($input: UpdateProductInput!) {
-    //         updateProduct(input: $input) {
-    //             id
-    //             assets { id name preview source }
-    //             featuredAsset { id name preview source }
-    //         }
-    //     }
-    // `
+    const UPDATE_PRODUCT_ASSETS_MUTATION = gql`
+        mutation UpdateProductAssets($input: UpdateProductInput!) {
+            updateProduct(input: $input) {
+                id
+                assets { id name preview source }
+                featuredAsset { id name preview source }
+            }
+        }
+    `
 
     let mutationInput = { id: product.id }
 

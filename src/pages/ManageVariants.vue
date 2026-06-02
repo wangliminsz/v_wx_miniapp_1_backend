@@ -134,25 +134,21 @@
                 <div
                   v-for="asset in variantForm.featuredAsset ? [variantForm.featuredAsset, ...(variantForm.assets?.filter(a => a.id !== variantForm.featuredAsset?.id) || [])] : (variantForm.assets || [])"
                   :key="asset.id" class="group relative w-20 h-20 bg-dark-300 rounded-md overflow-hidden">
-                  <img 
-                    v-if="getAssetUrl(asset.preview)"
-                    :src="getAssetUrl(asset.preview)" 
-                    :alt="asset.name" 
-                    class="w-full h-full object-cover" 
-                    @error="(e) => {
+                  <img v-if="getAssetUrl(asset.preview)" :src="getAssetUrl(asset.preview)" :alt="asset.name"
+                    class="w-full h-full object-cover" @error="(e) => {
                       console.log('Image failed to load, replacing with inline SVG');
                       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                       svg.setAttribute('width', '80');
                       svg.setAttribute('height', '80');
                       svg.setAttribute('viewBox', '0 0 80 80');
                       svg.classList.add('w-full', 'h-full', 'object-cover');
-                      
+
                       const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                       rect.setAttribute('width', '80');
                       rect.setAttribute('height', '80');
                       rect.setAttribute('fill', '#1f2937');
                       svg.appendChild(rect);
-                      
+
                       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                       text.setAttribute('x', '50%');
                       text.setAttribute('y', '50%');
@@ -162,15 +158,10 @@
                       text.setAttribute('font-size', '12');
                       text.textContent = 'No Image';
                       svg.appendChild(text);
-                      
+
                       e.target.parentNode.replaceChild(svg, e.target);
-                    }" 
-                  />
-                  <svg 
-                    v-else
-                    width="80" height="80" viewBox="0 0 80 80"
-                    class="w-full h-full object-cover"
-                  >
+                    }" />
+                  <svg v-else width="80" height="80" viewBox="0 0 80 80" class="w-full h-full object-cover">
                     <rect width="80" height="80" fill="#1f2937" />
                     <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#9ca3af" font-size="12">
                       No Image
@@ -178,11 +169,8 @@
                   </svg>
                   <div
                     class="absolute inset-0 bg-dark-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2">
-                    <button 
-                      v-if="variantForm.featuredAsset?.id !== asset.id"
-                      @click="setFeaturedAsset(asset)" 
-                      class="text-white hover:text-green-400"
-                      title="Set as Featured">
+                    <button v-if="variantForm.featuredAsset?.id !== asset.id" @click="setFeaturedAsset(asset)"
+                      class="text-white hover:text-green-400" title="Set as Featured">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -232,10 +220,9 @@
     <Teleport to="body">
       <Transition name="modal">
         <AssetSelector v-if="showAssetSelector"
-              :title="assetSelectorMode === 'add' ? 'Select Assets' : 'Set Featured Asset'"
-              :model-value="tempSelectedAssetIds" :select-multiple="assetSelectorMode === 'add'"
-              :emit-full-assets="true"
-              @confirm="updateVariantAssets" @close="closeAssetSelector" />
+          :title="assetSelectorMode === 'add' ? 'Select Assets' : 'Set Featured Asset'"
+          :model-value="tempSelectedAssetIds" :select-multiple="assetSelectorMode === 'add'" :emit-full-assets="true"
+          @confirm="updateVariantAssets" @close="closeAssetSelector" />
       </Transition>
     </Teleport>
 
@@ -486,8 +473,21 @@ const fetchProduct = async () => {
     // Create Apollo client without channel token to get ALL channels!
     const apolloClientNoChannel = createApolloClient(authStore.token, null)
 
+    // const [productResult, assetsResult] = await Promise.all([
+    //   apolloClientNoChannel.query({
+    //     query: GET_PRODUCT_QUERY,
+    //     variables: { id: route.params.productId },
+    //     fetchPolicy: 'network-only'
+    //   }),
+    //   apolloClient.query({
+    //     query: LIST_ASSETS_QUERY,
+    //     variables: { options: { take: 1000, skip: 0 } },
+    //     fetchPolicy: 'network-only'
+    //   })
+    // ])
+
     const [productResult, assetsResult] = await Promise.all([
-      apolloClientNoChannel.query({
+      apolloClient.query({
         query: GET_PRODUCT_QUERY,
         variables: { id: route.params.productId },
         fetchPolicy: 'network-only'
@@ -502,7 +502,7 @@ const fetchProduct = async () => {
     if (productResult.data?.product) {
       product.value = JSON.parse(JSON.stringify(productResult.data.product))
       variants.value = [...(productResult.data.product.variants || [])]
-      
+
       // Auto-select the first variant
       if (variants.value.length > 0) {
         selectVariant(variants.value[0])
@@ -544,7 +544,7 @@ const selectVariant = (variant) => {
   })
   // Convert price from cents to dollars for display
   const displayPrice = cleanVariant.price ? (cleanVariant.price / 100).toFixed(2) : '0.00'
-  
+
   variantForm.value = {
     id: cleanVariant.id,
     name: name,
@@ -573,10 +573,10 @@ const selectVariant = (variant) => {
 
 const getAssetUrl = (preview) => {
   if (!preview || typeof preview !== 'string') return null
-  
+
   // If it's already the placeholder URL, return null to trigger inline SVG
   if (preview.includes('via.placeholder.com')) return null
-  
+
   // Handle case where URL is doubled (e.g., http://example.com/http://example.com/...)
   const vendureUrl = import.meta.env.VITE_VENDURE_URL || ''
   if (preview.startsWith(vendureUrl) && preview.includes(vendureUrl + vendureUrl)) {
@@ -584,7 +584,7 @@ const getAssetUrl = (preview) => {
     const lastIndex = preview.lastIndexOf(vendureUrl)
     return preview.slice(lastIndex)
   }
-  
+
   // Vendure's Asset.preview is already a full URL, return it directly!
   return preview
 }
@@ -638,7 +638,7 @@ const saveVariant = async () => {
       variants.value = updatedVariants
       selectVariant(result.data.updateProductVariant)
       successMessage.value = 'Successfully updated product variant'
-      
+
       // Re-fetch all assets to get any newly uploaded ones
       const assetsResult = await apolloClient.query({
         query: LIST_ASSETS_QUERY,
@@ -689,7 +689,7 @@ const updateVariantAssets = (selectedAssets) => {
       source: selectedAssets.source
     } : null
   }
-  
+
   // Also add these assets to allAssets so we have them for next time
   if (Array.isArray(selectedAssets)) {
     selectedAssets.forEach(asset => {
@@ -700,7 +700,7 @@ const updateVariantAssets = (selectedAssets) => {
   } else if (selectedAssets && !allAssets.value.find(a => a.id === selectedAssets.id)) {
     allAssets.value.push(selectedAssets)
   }
-  
+
   closeAssetSelector()
 }
 

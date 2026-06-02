@@ -15,28 +15,36 @@ const PaginatedProductList = () => import('../pages/PaginatedProductList.vue')
 const routes = [
   {
     path: '/',
-    name: 'Search',
-    component: SearchPage,
-    meta: {
-      requiresAuth: true
-    }
-  },
-  {
-    path: '/search',
-    redirect: '/'
-  },
-  {
-    path: '/products',
-    name: 'ProductList',
-    component: ProductList,
-    meta: {
-      requiresAuth: true
-    }
+    redirect: '/products/paginated'
   },
   {
     path: '/products/paginated',
     name: 'PaginatedProductList',
     component: PaginatedProductList,
+    meta: { requiresAuth: true }
+  },
+
+  {
+    path: '/search',
+    name: 'Search',
+    component: SearchPage,
+    meta: { requiresAuth: true }
+  },
+
+  // {
+  //   path: '/products/paginated',
+  //   name: 'PaginatedProductList',
+  //   component: PaginatedProductList,
+  //   meta: {
+  //     requiresAuth: true
+  //   }
+  // },
+
+
+  {
+    path: '/products',
+    name: 'ProductList',
+    component: ProductList,
     meta: {
       requiresAuth: true
     }
@@ -97,7 +105,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  
+
   if (requiresAuth && !authStore.token) {
     // Redirect to login if trying to access protected route without auth, preserving query params!
     next({ name: 'Login', query: to.query })
