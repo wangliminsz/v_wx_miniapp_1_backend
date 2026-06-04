@@ -11,6 +11,12 @@ const I18nZhPage = () => import('../pages/I18nZhPage.vue')
 const ManageVariants = () => import('../pages/ManageVariants.vue')
 const LoginPage = () => import('../pages/LoginPage.vue')
 const PaginatedProductList = () => import('../pages/PaginatedProductList.vue')
+const OrderList = () => import('../pages/OrderList.vue')
+const OrderDetail = () => import('../pages/OrderDetail.vue')
+const CustomerList = () => import('../pages/CustomerList.vue')
+const CustomerDetail = () => import('../pages/CustomerDetail.vue')
+const CustomerGroupList = () => import('../pages/CustomerGroupList.vue')
+const VariantGroupList = () => import('../pages/VariantGroupList.vue')
 
 const routes = [
   {
@@ -21,6 +27,43 @@ const routes = [
     path: '/products/paginated',
     name: 'PaginatedProductList',
     component: PaginatedProductList,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/variants-with-group',
+    name: 'VariantGroupList',
+    component: VariantGroupList,
+    meta: { requiresAuth: true }
+  },
+
+  {
+    path: '/orders',
+    name: 'OrderList',
+    component: OrderList,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/orders/:orderId',
+    name: 'OrderDetail',
+    component: OrderDetail,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/customers',
+    name: 'CustomerList',
+    component: CustomerList,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/customers/:customerId',
+    name: 'CustomerDetail',
+    component: CustomerDetail,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/customer-groups',
+    name: 'CustomerGroupList',
+    component: CustomerGroupList,
     meta: { requiresAuth: true }
   },
 
@@ -105,6 +148,12 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+
+  // Preserve channel query param across all navigations
+  if (from.query.channel && !to.query.channel) {
+    next({ ...to, query: { ...to.query, channel: from.query.channel } })
+    return
+  }
 
   if (requiresAuth && !authStore.token) {
     // Redirect to login if trying to access protected route without auth, preserving query params!

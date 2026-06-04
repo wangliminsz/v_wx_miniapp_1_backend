@@ -6,6 +6,45 @@
 @shopApi = {{baseUrl}}/shop-api
 @adminApi = {{baseUrl}}/admin-api
 
+@super_admin_token=615293a4f16dd6787a1d6afe50bb740aa4b0d0e8d4aaf95c38a7bc91aff1e68a
+
+@dsy_admin_token=9c7b7d2f394cfb4832bd5753aa2945ce2f310ca775a2d08811879aabd5be81f6
+@dsy_channel_token=the-channel-token-for-channel-dsy
+
+@wang_admin_token=d648f635a4461c8e62af0e4b1f405d14445eeaa1560669d199dbce4b891a0306
+@wang_channel_token=the-channel-token-wang
+
+
+
+
+###############################################  Admin TOKEN TOKEN TOKEN OK OK OK
+
+POST {{adminApi}}
+Content-Type: application/json
+
+{
+  "query": "mutation Login { authenticate(input: { native: { username: \"wang\", password: \"wwwwwwww\" } }) { ... on CurrentUser { id identifier } } }"
+}
+
+
+######
+
+
+
+POST {{adminApi}}
+Content-Type: application/json
+
+{
+  "query": "mutation Login { authenticate(input: { native: { username: \"chenyuanyuan@miracleark.com.cn\", password: \"cccccccc\" } }) { ... on CurrentUser { id identifier } } }"
+}
+
+
+
+###############################################  Admin TOKEN TOKEN TOKEN OK OK OK
+
+
+
+
 # 💡 注意：测试前请确保在你的 Headers 或者是全局配置中，能够正确识别你的渠道 Code。
 # 以下测试我们以大沙总的渠道别名 "dsy" 为例进行模拟。
 
@@ -21,13 +60,54 @@
 POST {{adminApi}}
 Content-Type: application/json
 X-GraphQL-Method: generateRegisterCode
+Authorization: Bearer {{dsy_admin_token}}
+vendure-token: {{dsy_channel_token}}
 
 {
-  "query": "mutation GenerateRegisterCode { generateRegisterCode(channelCode: \"Channel_Wang\") { id code channel_code status openid } }"
+  "query": "mutation GenerateRegisterCode { generateRegisterCode(channelCode: \"channel_Dsy\") { id code channel_code status openid } }"
 }
 
 
 ######
+
+#### vendure-token: {{wang_channel_token}}
+
+## 1. 【管理后台】拉取所有渠道的全部授信邀请码清单
+POST {{adminApi}}
+Content-Type: application/json
+X-GraphQL-Method: getChannelAuthCodes
+Authorization: Bearer {{wang_admin_token}}
+vendure-token: {{wang_channel_token}}
+
+{
+  "query": "query GetAllAuthCodes { getChannelAuthCodes { id code channel_code status openid } }"
+}
+
+
+### 2. 【管理后台】按特定的渠道编码 (channelCode) 精确筛选拉取
+# 例如只查看 "Channel_Wang" 这个渠道生成的授信码
+POST {{adminApi}}
+Content-Type: application/json
+X-GraphQL-Method: getChannelAuthCodesByChannel
+Authorization: Bearer {{super_admin_token}}
+
+{
+  "query": "query GetChannelSpecificCodes($channelCode: String) { getChannelAuthCodes(channelCode: $channelCode) { id code channel_code status openid } }",
+  "variables": {
+    "channelCode": "channel_Dsy"
+  }
+}
+
+
+
+######
+
+
+
+
+
+
+
 
 
 ### ⚡ 批量生成渠道验证码（例如一次性生成 20 个）

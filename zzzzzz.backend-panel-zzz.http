@@ -1,12 +1,99 @@
 @baseUrl=http://192.168.0.51:3000/shop-api
+@baseUrl_admin=http://192.168.0.51:3000/admin-api
 @adminToken=26df74f26be27de534dfc7232b42b395706f49e26ff4891d816f38b0b1556fa2
 
 @shopToken=1234
 
 @channelToken=the-channel-token-for-channel-dsy
+# @channelToken=the-channel-token-wang
 
 
 ###############################################  
+
+### 根据渠道编码（Code）逆查获取渠道专属 Token
+POST {{baseUrl_admin}}
+Content-Type: application/json
+X-GraphQL-Method: TestChannelLookup
+
+{
+  "query": "query TestChannelLookup($code: String!) { getChannelTokenByCode(code: $code) { id code token } }",
+  "variables": {
+    "code": "Channel_Dsy--"
+  }
+}
+
+##########
+
+
+### 按商品规格名称 (Name) 正序 A-Z 排序拉取 B2B 规格
+POST {{baseUrl_admin}}
+Content-Type: application/json
+X-GraphQL-Method: b2bVariantsOrderByName
+vendure-token: {{channelToken}}
+
+{
+  "query": "query GetB2BVariants($options: ProductVariantListOptions) { b2bVariants(options: $options) { totalItems items { id name sku customFields { priceByLayer }  product { id name } } } }",
+  "variables": {
+    "options": {
+      "take": 20,
+      "skip": 0,
+      "sort": {
+        "name": "ASC" 
+      }
+    }
+  }
+}
+
+
+
+
+#####################
+
+
+### 1. 获取所有配置了 B2B 阶梯价 (priceByLayer) 的商品规格列表
+# 默认拉取前 100 条记录
+POST {{baseUrl_admin}}
+Content-Type: application/json
+X-GraphQL-Method: b2bVariants
+
+{
+  "query": "query GetB2BVariants($options: ProductVariantListOptions) { b2bVariants(options: $options) { totalItems items { id name sku customFields { priceByLayer } product { id name } } } }",
+  "variables": {
+    "options": {
+      "take": 10,
+      "skip": 0
+    }
+  }
+}
+
+
+### 2. 【分页测试】拉取下一页 B2B 商品规格
+# 改变 skip 偏移量进行后端分页验证
+POST {{baseUrl_admin}}
+Content-Type: application/json
+X-GraphQL-Method: b2bVariantsWithPagination
+
+{
+  "query": "query GetB2BVariantsPagination($options: ProductVariantListOptions) { b2bVariants(options: $options) { totalItems items { id name sku customFields { priceByLayer } product { id name } } } }",
+  "variables": {
+    "options": {
+      "take": 2,
+      "skip": 1
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+################################################
 
 POST {{baseUrl}}
 Content-Type: application/json
@@ -230,7 +317,7 @@ vendure-token: {{channelToken}}
 
 ###############################################  Admin TOKEN TOKEN TOKEN OK OK OK
 
-POST {{baseUrl}}/admin-api
+POST {{baseUrl_admin}}
 Content-Type: application/json
 
 {

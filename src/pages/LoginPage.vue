@@ -10,9 +10,9 @@
         <!-- Channel info display -->
         <div class="mb-4 p-3 bg-yellow-900/30 border border-yellow-600 rounded-md">
           <p class="text-sm text-yellow-300"><strong>Current Channel:</strong></p>
-          <p v-if="currentChannelInfo" class="text-sm text-yellow-200 font-mono mt-1">
-            Name: {{ currentChannelInfo.name }} <br>
-            Token: {{ currentChannelInfo.token }}
+          <p v-if="currentChannelName" class="text-sm text-yellow-200 font-mono mt-1">
+            Channel: {{ currentChannelName }} <br>
+            Token: {{ currentChannelToken }}
           </p>
           <p v-else class="text-sm text-yellow-200 font-mono mt-1">
             Token: {{ currentChannelToken }}
@@ -63,21 +63,18 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { getChannelTokenFromQuery } from '../utils/channelToken.js'
+import { getCachedChannelName, getChannelTokenFromQuery } from '../utils/channelToken.js'
 
-// Router and auth store
 const router = useRouter()
 const authStore = useAuthStore()
 
-// Get channel mapping from env
-const channelMapping = JSON.parse(import.meta.env.VITE_CHANNEL_MAPPING || '[]')
-const currentChannelToken = computed(() => getChannelTokenFromQuery())
-const currentChannelInfo = computed(() => {
-  return channelMapping.find(c => c.token === currentChannelToken.value) || null
-})
+// sessionStorage.removeItem('cached_channel_token')
+
+const currentChannelName = getCachedChannelName()
+const currentChannelToken = getChannelTokenFromQuery()
 
 // Form state
 const username = ref('')

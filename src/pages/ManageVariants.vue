@@ -129,6 +129,17 @@
             </div>
 
             <div class="bg-dark-200 rounded-md p-4 border border-dark-100">
+              <h3 class="text-md font-medium text-white mb-3">Price By Layer (by Customer Group)</h3>
+              <p class="text-xs text-gray-500 mb-2">JSON string, e.g. <code class="text-blue-400">{"group_1": 5000, "group_2": 6000}</code></p>
+              <textarea v-model="variantForm.priceByLayer" rows="4"
+                class="w-full px-3 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none focus:border-blue-500 font-mono text-sm"></textarea>
+              <button v-if="variantForm.priceByLayer" @click="formatPriceByLayer"
+                class="mt-2 px-3 py-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-gray-600">
+                Format JSON
+              </button>
+            </div>
+
+            <div class="bg-dark-200 rounded-md p-4 border border-dark-100">
               <h3 class="text-md font-medium text-white mb-3">Assets</h3>
               <div class="flex flex-wrap gap-2 mb-3">
                 <div
@@ -313,6 +324,7 @@ const variantForm = ref({
   enabled: true,
   sku: '',
   price: 0,
+  priceByLayer: '',
   assets: [],
   featuredAsset: null,
   facetValues: [],
@@ -369,6 +381,9 @@ const GET_PRODUCT_QUERY = gql`
         enabled
         sku
         price
+        customFields {
+          priceByLayer
+        }
         translations {
           id
           languageCode
@@ -436,6 +451,9 @@ const UPDATE_VARIANT_MUTATION = gql`
       enabled
       sku
       price
+      customFields {
+        priceByLayer
+      }
       translations {
         id
         languageCode
@@ -551,6 +569,7 @@ const selectVariant = (variant) => {
     enabled: cleanVariant.enabled !== false,
     sku: cleanVariant.sku || '',
     price: parseFloat(displayPrice),
+    priceByLayer: cleanVariant.customFields?.priceByLayer || '',
     assets: (cleanVariant.assets || []).map(a => {
       const { __typename, ...rest } = a
       return rest
@@ -589,6 +608,15 @@ const getAssetUrl = (preview) => {
   return preview
 }
 
+const formatPriceByLayer = () => {
+  try {
+    const parsed = JSON.parse(variantForm.value.priceByLayer)
+    variantForm.value.priceByLayer = JSON.stringify(parsed, null, 2)
+  } catch {
+    // ignore invalid JSON
+  }
+}
+
 const saveVariant = async () => {
   if (!selectedVariant.value) return
   isSaving.value = true
@@ -622,6 +650,7 @@ const saveVariant = async () => {
           enabled: variantForm.value.enabled,
           sku: variantForm.value.sku,
           price: priceInCents,
+          customFields: { priceByLayer: variantForm.value.priceByLayer },
           translations: updatedTranslations,
           assetIds: variantForm.value.assets?.map(a => a.id) || [],
           featuredAssetId: variantForm.value.featuredAsset?.id || null,

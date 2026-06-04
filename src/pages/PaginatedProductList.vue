@@ -1028,6 +1028,8 @@ const fetchPaginatedProducts = async () => {
       channelToken = authStore.activeChannel.token
     }
 
+    console.log("2026-06-03----------------------->>>> channelToken ",channelToken)
+
     const apolloClient = createApolloClient(authStore.token, channelToken)
     const { data } = await apolloClient.query({
       query: GET_PAGINATED_PRODUCTS_QUERY,
