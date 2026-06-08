@@ -1,0 +1,92 @@
+POST https://m.tu-bo.com/api/applet/colorBook/queryColorBook HTTP/1.1
+Host: m.tu-bo.com
+Connection: keep-alive
+Content-Length: 65
+Language: zh_CN
+Tubo-Sign: 5e3ada6d403bc18e3da0c580e40d867b
+Authorization: 2609a5c1a5e84117be16ad8997b2747d
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 MicroMessenger/7.0.20.1781(0x6700143B) NetType/WIFI MiniProgramEnv/Windows WindowsWechat/WMPF WindowsWechat(0x63090a13) UnifiedPCWindowsWechat(0xf2541936) XWEB/19823
+xweb_xhr: 1
+Content-Type: application/json
+Accept: */*
+Sec-Fetch-Site: cross-site
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://servicewechat.com/wx245884ef5eb4d961/41/page-frame.html
+Accept-Encoding: gzip, deflate, br
+Accept-Language: zh-CN,zh;q=0.9
+
+{"keyWord":"","pageNo":8,"pageSize":300,"colorBookCategoryId":"9"}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ==============================================================================
+# 配置环境变量（根据你的实际环境微调端口或域名）
+# ==============================================================================
+@shopApi = http://192.168.0.51:3000/shop-api
+@customerToken = 0357dafbefa2d4335f6712b1afa313ae4a16ee293857c2aa36c8ebd60e193861   
+@channelToken = the-channel-token-for-channel-dsy
+
+### 【微信前端专用】1. 测试空关键词：拉取当前登录用户所有的历史订单（带分页）
+POST {{shopApi}}
+Content-Type: application/json
+Authorization: Bearer {{customerToken}}
+vendure-token: {{channelToken}}
+X-GraphQL-Method: searchMyOrdersByLine
+
+{
+  "query": "query SearchOrders($searchTerm: String!, $take: Int, $skip: Int) { searchMyOrdersByLine(searchTerm: $searchTerm, take: $take, skip: $skip) { items { id code state totalWithTax createdAt lines { id quantity productVariant { id sku name} } } totalItems } }",
+  "variables": {
+    "searchTerm": "ball",
+    "take": 10,
+    "skip": 0
+  }
+}
+
+### 
+POST {{shopApi}}
+Content-Type: application/json
+Authorization: Bearer {{customerToken}}
+x-vendure-token: {{channelToken}}
+X-GraphQL-Method: searchMyOrdersByLine
+
+{
+  "query": "query SearchOrders($searchTerm: String!, $take: Int, $skip: Int) { searchMyOrdersByLine(searchTerm: $searchTerm, take: $take, skip: $skip) { items { id code state totalWithTax lines { productVariant { sku } } } totalItems } }",
+  "variables": {
+    "searchTerm": "ball",
+    "take": 10,
+    "skip": 0
+  }
+}
+
+### 【微信前端专用】3. 测试 SKU 精确/模糊检索：反查购买过特定型号 SKU 的历史订单
+POST {{shopApi}}
+Content-Type: application/json
+Authorization: Bearer {{customerToken}}
+x-vendure-token: {{channelToken}}
+X-GraphQL-Method: searchMyOrdersByLine
+
+{
+  "query": "query SearchOrders($searchTerm: String!, $take: Int, $skip: Int) { searchMyOrdersByLine(searchTerm: $searchTerm, take: $take, skip: $skip) { items { id code state lines { productVariant { sku } } } totalItems } }",
+  "variables": {
+    "searchTerm": "ball",
+    "take": 10,
+    "skip": 0
+  }
+}

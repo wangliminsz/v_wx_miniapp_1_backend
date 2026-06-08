@@ -48,6 +48,7 @@
               <th class="px-4 py-3 font-semibold">Code</th>
               <th class="px-4 py-3 font-semibold">State</th>
               <th class="px-4 py-3 font-semibold">Customer</th>
+              <th class="px-4 py-3 font-semibold">Channel</th>
               <th class="px-4 py-3 font-semibold">Total</th>
               <th class="px-4 py-3 font-semibold">Shipping</th>
               <th class="px-4 py-3 font-semibold">Placed At</th>
@@ -65,6 +66,9 @@
               </td>
               <td class="px-4 py-3 text-gray-300">
                 {{ order.customer ? `${order.customer.firstName} ${order.customer.lastName}` : '-' }}
+              </td>
+              <td class="px-4 py-3 text-gray-300 text-sm font-mono">
+                {{ channelCodes(order) }}
               </td>
               <td class="px-4 py-3 text-gray-300 font-mono">
                 {{ formatPrice(order.totalWithTax) }} {{ order.currencyCode }}
@@ -240,6 +244,14 @@ const formatPrice = (value) => {
 const shippingMethod = (order) => {
   if (!order.shippingLines || order.shippingLines.length === 0) return '-'
   return order.shippingLines.map(sl => sl.shippingMethod?.name || sl.shippingMethod?.code || '?').join(', ')
+}
+
+const channelCodes = (order) => {
+  if (!order.channels || order.channels.length === 0) return '-'
+  const codes = order.channels
+    .map(c => c.code)
+    .filter(code => code !== '__default_channel__')
+  return codes.length ? codes.join(', ') : '-'
 }
 
 const formatDate = (dateStr) => {

@@ -79,6 +79,24 @@
             i18n(zh-cn)
           </router-link>
 
+          <router-link to="/ral-colors" v-if="isSuperAdmin"
+            class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
+            active-class="bg-primary">
+            Ral Colors
+          </router-link>
+
+          <label
+            class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors cursor-pointer flex items-center gap-2"
+            :class="{ 'opacity-50 cursor-not-allowed': uploadingAssets }">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16V8m0 0l-4 4m4-4l4 4" />
+            </svg>
+            {{ uploadingAssets ? 'Uploading...' : 'Upload' }}
+            <input type="file" class="hidden" multiple
+              :disabled="uploadingAssets"
+              @change="handleAssetFilesSelect" />
+          </label>
+
 
            <button @click="generateAuthCode"
             class="px-4 py-2 bg-green-600 text-white rounded-md transition-colors hover:bg-green-500"
@@ -107,6 +125,14 @@
         <p class="text-red-400">{{ authCodeError }}</p>
       </div>
 
+      <div v-if="assetUploadMessage" class="mb-6 border p-4 rounded-md relative"
+        :class="assetUploadOk ? 'bg-green-900/30 border-green-600' : 'bg-red-900/30 border-red-500'">
+        <button @click="assetUploadMessage = ''"
+          class="absolute top-2 right-2 text-lg leading-none"
+          :class="assetUploadOk ? 'text-green-300 hover:text-green-100' : 'text-red-400 hover:text-red-200'">&times;</button>
+        <p :class="assetUploadOk ? 'text-green-300' : 'text-red-400'">{{ assetUploadMessage }}</p>
+      </div>
+
       <router-view></router-view>
     </div>
   </div>
@@ -129,9 +155,83 @@ const authCode = ref('')
 const authCodeChannel = ref('')
 const authCodeError = ref('')
 const generatingCode = ref(false)
+const uploadingAssets = ref(false)
+const assetUploadMessage = ref('')
+const assetUploadOk = ref(true)
 
 const handleLogout = () => {
   authStore.logout()
+}
+
+// Upload one file to Vendure's admin `createAssets` mutation via the
+// graphql-multipart-request-spec form-data shape. Returns the created
+// Asset, or throws with the server's error message.
+const uploadOneAsset = async (file, channelToken = null) => {
+  const formData = new FormData()
+  const operations = {
+    query: `mutation CreateAssets($input: [CreateAssetInput!]!) {
+      createAssets(input: $input) {
+        ... on Asset { id name preview source fileSize mimeType }
+        ... on MimeTypeError { errorCode message fileName }
+      }
+    }`,
+    variables: { input: [{ file: null }] },
+  }
+  formData.append('operations', JSON.stringify(operations))
+  formData.append('map', JSON.stringify({ '0': ['variables.input.0.file'] }))
+  formData.append('0', file)
+
+  const headers = {}
+  if (authStore.token) headers['Authorization'] = `Bearer ${authStore.token}`
+  if (channelToken) headers['vendure-token'] = channelToken
+
+  const apiUrl = import.meta.env.VITE_VENDURE_ADMIN_API_URL || import.meta.env.VITE_VENDURE_URL
+  const response = await fetch(apiUrl, { method: 'POST', headers, body: formData })
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`HTTP ${response.status}: ${text}`)
+  }
+  const json = await response.json()
+  if (json.errors?.length) throw new Error(json.errors[0].message)
+  const result = json.data?.createAssets?.[0]
+  if (!result) throw new Error('Empty response from server')
+  if (result.errorCode) throw new Error(`${result.fileName}: ${result.message}`)
+  return result
+}
+
+const handleAssetFilesSelect = async (e) => {
+  const files = Array.from(e.target.files || [])
+  if (files.length === 0) return
+  e.target.value = '' // allow re-selecting the same file later
+
+  uploadingAssets.value = true
+  assetUploadMessage.value = ''
+  let ok = 0
+  const failed = []
+  try {
+    const params = new URLSearchParams(window.location.search)
+    let channelToken = params.get('vendure-token') || null
+    if (!channelToken && authStore.activeChannel) channelToken = authStore.activeChannel.token
+
+    for (const file of files) {
+      try {
+        await uploadOneAsset(file, channelToken)
+        ok += 1
+      } catch (err) {
+        failed.push(`${file.name}: ${err.message}`)
+      }
+    }
+    if (failed.length === 0) {
+      assetUploadMessage.value = `Uploaded ${ok} asset${ok === 1 ? '' : 's'} successfully.`
+      assetUploadOk.value = true
+    } else {
+      assetUploadMessage.value =
+        `Uploaded ${ok} of ${files.length}. Failed: ${failed.join('; ')}`
+      assetUploadOk.value = false
+    }
+  } finally {
+    uploadingAssets.value = false
+  }
 }
 
 const generateAuthCode = async () => {
@@ -237,6 +337,7 @@ onMounted(async () => {
         console.log('isSuperAdmin ----------> 0604 data.data----->', data.data)
         const roles = data.data.activeAdministrator.user.roles
         isSuperAdmin.value = roles.some(r => r.code === '__super_admin_role__')
+        authStore.isSuperAdmin = isSuperAdmin.value
         console.log('isSuperAdmin ----------> 0604 isSuperAdmin----->', isSuperAdmin)
       }
     } catch (e) {

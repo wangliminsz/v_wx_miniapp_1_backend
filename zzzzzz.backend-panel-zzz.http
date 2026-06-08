@@ -8,6 +8,79 @@
 # @channelToken=the-channel-token-wang
 
 
+
+###############################################
+
+### 🔍 Super Admin 专属：跨渠道审计某个客户的全部资产与渠道归属
+POST {{baseUrl_admin}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "query": "query AuditCustomerChannels($id: ID!) { customer(id: $id) { id firstName lastName orders(options: { take: 100 }) { items { id code totalWithTax channels { id code } } } } }",
+  "variables": {
+    "id": "91" 
+  }
+
+}
+
+######################
+
+
+POST {{baseUrl_admin}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "query": "query AuditNewCustomerChannels($id: ID!) { customer(id: $id) { id firstName lastName channels { id code } user { id verified } } }",
+  "variables": {
+    "id": "90"
+  }
+}
+
+
+##############
+
+
+
+
+@adminApi = http://localhost:3000/admin-api
+@superAdminToken = eyJhbGciOiJIUzI1Ni... # 🎯 放入你的 Super Admin 超级管理员 Token
+
+### 🔍 Super Admin 穿透审计：即使用户一单没下，也能秒查注册渠道归属
+POST {{baseUrl_admin}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "query": "query AuditCustomerChannelByList($customerId: ID!) { customer(id: $customerId) { id firstName } channels { items { id code } } }",
+  "variables": {
+    "customerId": "91"
+  }
+}
+
+
+#########
+
+POST {{baseUrl_admin}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "query": "query CheckIfCustomerInList($filter: CustomerFilterParameter!) { customers(options: { filter: $filter }) { totalItems items { id } } }",
+  "variables": {
+    "filter": {
+      "id": {
+        "eq": "91"
+      }
+    }
+  }
+}
+
+
+#########
+ channels { id code } 
+
 ###############################################  
 
 ### 根据渠道编码（Code）逆查获取渠道专属 Token
@@ -325,3 +398,41 @@ Content-Type: application/json
 }
 
 ###############################################  Admin TOKEN TOKEN TOKEN OK OK OK
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GET https://m.tu-bo.com/api/applet/colorBook/getRecipe/579118942560325 HTTP/1.1
+Host: m.tu-bo.com
+Connection: keep-alive
+Language: zh_CN
+Tubo-Sign: 24d5098f64a98e48dcdbda95b1be4b83
+Authorization: 2609a5c1a5e84117be16ad8997b2747d
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 MicroMessenger/7.0.20.1781(0x6700143B) NetType/WIFI MiniProgramEnv/Windows WindowsWechat/WMPF WindowsWechat(0x63090a13) UnifiedPCWindowsWechat(0xf2541936) XWEB/19823
+xweb_xhr: 1
+Content-Type: application/json
+Accept: */*
+Sec-Fetch-Site: cross-site
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://servicewechat.com/wx245884ef5eb4d961/41/page-frame.html
+Accept-Encoding: gzip, deflate, br
+Accept-Language: zh-CN,zh;q=0.9

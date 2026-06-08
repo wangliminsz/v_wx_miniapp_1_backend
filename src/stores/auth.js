@@ -8,6 +8,7 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     channels: [],
     activeChannel: null,
+    isSuperAdmin: false,
     loading: false,
     error: null
   }),

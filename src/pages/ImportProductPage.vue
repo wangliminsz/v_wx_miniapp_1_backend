@@ -2248,9 +2248,79 @@ const importCollections = async () => {
 const readFileAsText = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = (e) => resolve(e.target.result)
-    reader.onerror = (e) => reject(new Error('Error reading file'))
-    reader.readAsText(file)
+    reader.onload = (e) => {
+      // Read as ArrayBuffer so we can pick the correct encoding.
+      // `readAsText(file)` with no argument defaults to UTF-8, which
+      // mangles Chinese-Windows CSVs (typically saved as GBK / GB18030
+      // by Excel and Notepad) — turning "白色" into "��ɫ".
+      const buf = e.target.result
+      const bytes = new Uint8Array(buf)
+      const len = bytes.length
+
+      // Quick BOM sniff so we honor the user's explicit encoding when
+      // they've bothered to write one.  The hard cases are BOM-less
+      // Chinese-Windows files; for those we fall through to the
+      // trial-decode logic below.
+      let bomEncoding = null
+      if (len >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+        bomEncoding = 'utf-8'
+      } else if (len >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) {
+        bomEncoding = 'utf-16le'
+      } else if (len >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) {
+        bomEncoding = 'utf-16be'
+      }
+
+      // Trial-decode: pick the encoding that produces the fewest
+      // Unicode replacement characters (U+FFFD).  For ASCII files
+      // both decoders agree; for GBK-only files UTF-8 produces a
+      // mojibake full of �s, while GB18030 (a superset of GBK and
+      // the modern Chinese standard) decodes cleanly.  For valid
+      // UTF-8 files UTF-8 wins.
+      const countRepl = (s) => (s.match(/\uFFFD/g) || []).length
+      const tryDecode = (enc) => {
+        try { return new TextDecoder(enc).decode(bytes) }
+        catch (e) { return null }
+      }
+
+      let text
+      if (bomEncoding) {
+        text = tryDecode(bomEncoding) || tryDecode('utf-8') || ''
+        // Strip a stray UTF-8 BOM that may have slipped into the
+        // decoded string.
+        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1)
+      } else {
+        // No BOM -> try UTF-8 and GB18030, keep whichever looks cleanest.
+        const utf8 = tryDecode('utf-8')
+        const utf8Repl = utf8 ? countRepl(utf8) : Infinity
+
+        const gb = tryDecode('gb18030')  // 'gbk' is a Chrome 130+ alias
+        const gbRepl = gb ? countRepl(gb) : Infinity
+
+        // Only fall back to GB18030 if it's *strictly better* than
+        // UTF-8 — this prevents accidentally mangling genuine Latin-1
+        // or Windows-1252 files.
+        if (gb && gbRepl < utf8Repl) {
+          text = gb
+        } else if (utf8) {
+          text = utf8
+        } else {
+          text = new TextDecoder('utf-8').decode(bytes)
+        }
+        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1)
+
+        // Log the chosen encoding so encoding issues are easy to debug
+        // from the console.  Cheap, runs only on file load.
+        console.log(
+          `[readFileAsText] file=${file.name}  size=${len}B  ` +
+          `utf8_repl=${utf8Repl}  gb18030_repl=${gbRepl}  ` +
+          `chose=${gb && gbRepl < utf8Repl ? 'gb18030' : 'utf-8'}`
+        )
+      }
+
+      resolve(text)
+    }
+    reader.onerror = () => reject(new Error('Error reading file'))
+    reader.readAsArrayBuffer(file)
   })
 }
 

@@ -17,6 +17,7 @@ const CustomerList = () => import('../pages/CustomerList.vue')
 const CustomerDetail = () => import('../pages/CustomerDetail.vue')
 const CustomerGroupList = () => import('../pages/CustomerGroupList.vue')
 const VariantGroupList = () => import('../pages/VariantGroupList.vue')
+const RalColors = () => import('../pages/RalColors.vue')
 
 const routes = [
   {
@@ -33,6 +34,12 @@ const routes = [
     path: '/variants-with-group',
     name: 'VariantGroupList',
     component: VariantGroupList,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/ral-colors',
+    name: 'RalColors',
+    component: RalColors,
     meta: { requiresAuth: true }
   },
 

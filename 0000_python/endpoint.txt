@@ -1,0 +1,63 @@
+GET https://m.tu-bo.com/api/applet/colorBook/getRecipe/579118942560325 HTTP/1.1
+Host: m.tu-bo.com
+Connection: keep-alive
+Language: zh_CN
+Tubo-Sign: 24d5098f64a98e48dcdbda95b1be4b83
+Authorization: 2609a5c1a5e84117be16ad8997b2747d
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 MicroMessenger/7.0.20.1781(0x6700143B) NetType/WIFI MiniProgramEnv/Windows WindowsWechat/WMPF WindowsWechat(0x63090a13) UnifiedPCWindowsWechat(0xf2541936) XWEB/19823
+xweb_xhr: 1
+Content-Type: application/json
+Accept: */*
+Sec-Fetch-Site: cross-site
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://servicewechat.com/wx245884ef5eb4d961/41/page-frame.html
+Accept-Encoding: gzip, deflate, br
+Accept-Language: zh-CN,zh;q=0.9
+
+
+response:
+
+HTTP/1.1 200 
+Date: Fri, 05 Jun 2026 14:07:58 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+Set-Cookie: acw_tc=781bad4017806684786654057e29e9f501adc5b51436588e287af4d20ce424;path=/;HttpOnly;Max-Age=1800
+Server: nginx/1.20.1
+Vary: Accept-Encoding
+Content-Encoding: gzip
+
+{
+  "code": 200,
+  "message": "Success",
+  "data": [
+    {
+      "materialNo": "Titanium",
+      "materialName": "钛白粉",
+      "indexNumber": "",
+      "weight": 54
+    },
+    {
+      "materialNo": "HB2185",
+      "materialName": "碳黑",
+      "indexNumber": "",
+      "weight": 1.52
+    },
+    {
+      "materialNo": "HF2Y",
+      "materialName": "橙/HF2Y",
+      "indexNumber": "C.I.P.O.64",
+      "weight": 28.26
+    },
+    {
+      "materialNo": "F5RK",
+      "materialName": "F5RK",
+      "indexNumber": "C.I.P.R.170",
+      "weight": 22.18
+    }
+  ],
+  "success": true,
+  "timestamp": 1780668478697
+}
+

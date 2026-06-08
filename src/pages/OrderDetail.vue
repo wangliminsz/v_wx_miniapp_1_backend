@@ -20,12 +20,18 @@
       </div>
       <div class="text-right text-sm text-gray-400">
         <div>Placed: {{ formatDate(order.orderPlacedAt || order.createdAt) }}</div>
-        <div v-if="order.channels?.length">Channel: {{order.channels.map(c => c.code).join(', ')}}</div>
+        <div v-if="headerChannelCodes(order)">Channel: {{ headerChannelCodes(order) }}</div>
       </div>
-      <button v-if="order.state === 'PaymentSettled' || (order.fulfillments?.length > 0 && order.fulfillments.every(f => f.state === 'Cancelled'))" @click="openFulfillModal"
-        class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-500 transition-colors">
-        Fulfill Order
-      </button>
+      <div class="flex items-center gap-2">
+        <button v-if="order.state === 'PaymentSettled' || (order.fulfillments?.length > 0 && order.fulfillments.every(f => f.state === 'Cancelled'))" @click="openFulfillModal"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-500 transition-colors">
+          Fulfill Order
+        </button>
+        <button v-if="order.state !== 'Cancelled'" @click="openCancelModal"
+          class="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-500 transition-colors">
+          Cancel Order
+        </button>
+      </div>
     </div>
 
     <!-- Info cards: Customer + Addresses + Payment + Fulfillment -->
@@ -106,11 +112,12 @@
     <!-- Fulfillment -->
     <div class="mb-6 bg-dark-200 p-4 rounded-md border border-dark-100">
       <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Fulfillment</h3>
-      <div v-if="order.fulfillments && order.fulfillments.length" class="space-y-2">
+      <div v-if="order.fulfillments && order.fulfillments.length" class="space-y-4">
         <div v-for="f in order.fulfillments" :key="f.id"
-          class="text-gray-300 text-sm border-b border-dark-100 pb-2 last:border-0 last:pb-0">
-          <div class="flex items-center justify-between">
-            <span class="font-medium">{{ f.method || '-' }}</span>
+          class="text-gray-300 text-sm border-b border-dark-100 pb-3 last:border-0 last:pb-0">
+          <!-- Header row: method + state + transition buttons -->
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-medium text-base">{{ f.method || '-' }}</span>
             <div class="flex items-center gap-2">
               <span :class="stateClass(f.state)" class="px-2 py-0.5 rounded-full text-xs font-semibold">{{ f.state
                 }}</span>
@@ -125,9 +132,52 @@
               </button>
             </div>
           </div>
-          <p v-if="f.trackingCode" class="text-gray-500 text-xs font-mono">Tracking: {{ f.trackingCode }}</p>
-          <p v-if="f.lines?.length" class="text-gray-500 text-xs">Items: {{f.lines.reduce((sum, l) => sum + (l.quantity
-            || 0), 0) }}</p>
+
+          <!-- Detail fields: ID / Method / State / Tracking / Created -->
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+            <div class="flex gap-2">
+              <dt class="text-gray-500 w-24 shrink-0">Fulfillment ID</dt>
+              <dd class="text-gray-200 font-mono">{{ fulfillmentId(f) }}</dd>
+            </div>
+            <div class="flex gap-2">
+              <dt class="text-gray-500 w-24 shrink-0">Method</dt>
+              <dd class="text-gray-200">{{ f.method || '-' }}</dd>
+            </div>
+            <div class="flex gap-2">
+              <dt class="text-gray-500 w-24 shrink-0">State</dt>
+              <dd class="text-gray-200">{{ f.state }}</dd>
+            </div>
+            <div class="flex gap-2">
+              <dt class="text-gray-500 w-24 shrink-0">Tracking code</dt>
+              <dd class="text-gray-200 font-mono">{{ f.trackingCode || '-' }}</dd>
+            </div>
+            <div class="flex gap-2">
+              <dt class="text-gray-500 w-24 shrink-0">Created</dt>
+              <dd class="text-gray-200">{{ formatDate(f.createdAt) }}</dd>
+            </div>
+          </dl>
+
+          <!-- Fulfilled items (collapsible) -->
+          <div v-if="f.lines?.length" class="mt-3 border-t border-dark-100 pt-2">
+            <button @click="toggleFulfillmentItems(f.id)"
+              class="w-full flex items-center justify-between text-sm text-gray-300 hover:text-white">
+              <span class="font-medium">Fulfilled items ({{ totalFulfillmentQty(f) }})</span>
+              <span class="text-gray-500 text-xs">{{ expandedFulfillmentIds[f.id] ? '▾' : '▸' }}</span>
+            </button>
+            <div v-if="expandedFulfillmentIds[f.id]" class="mt-2 space-y-2 pl-2">
+              <div v-for="line in f.lines" :key="line.orderLineId"
+                class="border border-dark-100 rounded-md p-2">
+                <p class="text-gray-200">{{ line.orderLine?.productVariant?.name || '-' }}</p>
+                <p class="text-xs text-gray-500">
+                  <span class="text-gray-400">Qty:</span> {{ line.quantity }}
+                  <span v-if="line.orderLine?.productVariant?.sku" class="ml-2">
+                    <span class="text-gray-400">SKU:</span>
+                    <span class="font-mono">{{ line.orderLine.productVariant.sku }}</span>
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div v-else class="text-gray-500 text-sm italic">No Fulfill Info</div>
@@ -207,8 +257,13 @@
           class="relative pl-6 border-l-2 border-dark-100 pb-3 last:pb-0">
           <div class="absolute -left-1.5 top-1 w-2.5 h-2.5 rounded-full bg-dark-100"></div>
           <p class="text-xs text-gray-500">{{ formatDate(entry.createdAt) }}</p>
-          <p class="text-sm text-gray-300">{{ entry.type }}</p>
-          <p v-if="entry.data?.note" class="text-sm text-gray-400 italic">{{ entry.data.note }}</p>
+          <p class="text-sm text-gray-300">
+            <template v-for="(part, idx) in formatHistoryEntry(entry)" :key="idx">
+              <span v-if="part.state" :class="stateClass(part.state)"
+                class="px-1.5 py-0.5 rounded text-xs font-semibold mx-0.5">{{ part.state }}</span>
+              <span v-else>{{ part.text }}</span>
+            </template>
+          </p>
           <p v-if="entry.administrator" class="text-xs text-gray-500">by {{ entry.administrator.firstName }} {{
             entry.administrator.lastName }}</p>
         </div>
@@ -261,6 +316,42 @@
       </div>
     </div>
   </div>
+
+  <!-- Cancel Order Modal -->
+  <div v-if="showCancelModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" @click.self="closeCancelModal">
+    <div class="bg-dark-200 rounded-lg border border-dark-100 p-6 w-full max-w-lg">
+      <h3 class="text-xl font-bold text-gray-200 mb-2">Cancel Order {{ order?.code }}</h3>
+      <p class="text-sm text-gray-400 mb-4">
+        This will cancel the entire order regardless of its current state. This action cannot be undone.
+      </p>
+
+      <div class="mb-4">
+        <label class="block text-sm text-gray-400 mb-1">Reason (optional)</label>
+        <textarea v-model="cancelReason" rows="3" placeholder="e.g. customer requested cancellation, out of stock..."
+          class="w-full px-4 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary text-sm"></textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+          <input type="checkbox" v-model="cancelShipping" class="rounded border-dark-100 bg-dark-300 text-red-600 focus:ring-red-500" />
+          Also cancel shipping charges
+        </label>
+      </div>
+
+      <div v-if="cancelError" class="mb-4 bg-red-900/30 border border-red-500 text-red-400 p-3 rounded-md text-sm">
+        {{ cancelError }}
+      </div>
+
+      <div class="flex justify-end gap-3">
+        <button @click="closeCancelModal" :disabled="cancelling"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition-colors disabled:opacity-50">Close</button>
+        <button @click="submitCancel" :disabled="cancelling"
+          class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-500 transition-colors disabled:opacity-50">
+          {{ cancelling ? 'Cancelling...' : 'Cancel Order' }}
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -285,6 +376,14 @@ const fulfillMethod = ref('')
 const fulfillTrackingCode = ref('')
 const fulfilling = ref(false)
 const transitFulfillmentId = ref(null)
+
+const showCancelModal = ref(false)
+const cancelReason = ref('')
+const cancelShipping = ref(true)
+const cancelling = ref(false)
+const cancelError = ref('')
+
+const expandedFulfillmentIds = ref({})
 
 const createApolloClient = (authToken, channelToken = null) => {
   const httpLink = createHttpLink({
@@ -365,12 +464,21 @@ const GET_ORDER_QUERY = gql`
       }
       fulfillments {
         id
+        createdAt
         method
         trackingCode
         state
         nextStates
         lines {
           quantity
+          orderLine {
+            id
+            productVariant {
+              id
+              name
+              sku
+            }
+          }
         }
       }
       lines {
@@ -470,6 +578,99 @@ const formatDate = (dateStr) => {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+const headerChannelCodes = (o) => {
+  if (!o?.channels || o.channels.length === 0) return ''
+  const codes = o.channels
+    .map(c => c.code)
+    .filter(code => code !== '__default_channel__')
+  return codes.length ? codes.join(', ') : ''
+}
+
+// Format a HistoryEntry into an array of { text } / { state } parts,
+// similar to the detail rows in the Vendure admin UI
+// (e.g. "Fulfillment #8 from Shipped to Delivered").
+const parseHistoryData = (raw) => {
+  if (raw == null) return {}
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw) } catch (_) { return {} }
+  }
+  return raw
+}
+
+const formatHistoryEntry = (entry) => {
+  const data = parseHistoryData(entry.data)
+  const parts = []
+  const push = (val) => {
+    if (val != null && val !== '') parts.push({ text: String(val) })
+  }
+  const pushState = (s) => {
+    if (s != null && s !== '') parts.push({ state: String(s) })
+  }
+
+  switch (entry.type) {
+    case 'ORDER_STATE_TRANSITION':
+      push('Order transitioned from ')
+      pushState(data.from)
+      push(' to ')
+      pushState(data.to)
+      break
+    case 'ORDER_FULFILLMENT_TRANSITION':
+      push(`Fulfillment #${data.fulfillmentId ?? ''} from `)
+      pushState(data.from)
+      push(' to ')
+      pushState(data.to)
+      break
+    case 'ORDER_FULFILLMENT':
+      push(`Fulfillment #${data.fulfillmentId ?? ''} created`)
+      break
+    case 'ORDER_PAYMENT_TRANSITION':
+      push(`Payment #${data.paymentId ?? ''} from `)
+      pushState(data.from)
+      push(' to ')
+      pushState(data.to)
+      break
+    case 'ORDER_REFUND_TRANSITION':
+      push(`Refund #${data.refundId ?? ''} from `)
+      pushState(data.from)
+      push(' to ')
+      pushState(data.to)
+      break
+    case 'ORDER_CANCELLATION':
+      push('Order cancelled')
+      if (data.reason) {
+        push(` (${data.cancellationType || 'reason'}: ${data.reason})`)
+      } else if (data.cancellationType) {
+        push(` (${data.cancellationType})`)
+      }
+      break
+    case 'ORDER_NOTE':
+      push(data.note ? `Note: ${data.note}` : 'Note added')
+      break
+    case 'ORDER_COUPON_APPLIED':
+      push(`Coupon ${data.couponCode || ''} applied`)
+      break
+    case 'ORDER_COUPON_REMOVED':
+      push(`Coupon ${data.couponCode || ''} removed`)
+      break
+    case 'ORDER_MODIFIED':
+      push('Order modified')
+      break
+    case 'ORDER_CUSTOMER_UPDATED':
+      push('Customer updated')
+      break
+    case 'CUSTOMER_NOTE':
+      push(data.note ? `Customer note: ${data.note}` : 'Customer note added')
+      break
+    default:
+      // Fallback: humanize the type and show note if any
+      push(entry.type ? entry.type.replace(/_/g, ' ').toLowerCase() : 'History entry')
+      if (data.note) push(`: ${data.note}`)
+  }
+
+  if (parts.length === 0) parts.push({ text: entry.type || 'History entry' })
+  return parts
 }
 
 const SETTLE_PAYMENT_MUTATION = gql`
@@ -616,6 +817,83 @@ const transitionFulfillment = async (id, state) => {
     error.value = err.message || 'Failed to transition fulfillment'
   } finally {
     transitFulfillmentId.value = null
+  }
+}
+
+const fulfillmentId = (f) => {
+  // Vendure uses a numeric sequence for Fulfillment IDs ("Fulfillment #9").
+  // We can derive the numeric portion by stripping the GraphQL node id prefix.
+  if (f.id == null) return '-'
+  const m = String(f.id).match(/(\d+)$/)
+  return m ? m[1] : f.id
+}
+
+const totalFulfillmentQty = (f) => {
+  if (!f.lines || f.lines.length === 0) return 0
+  return f.lines.reduce((sum, l) => sum + (l.quantity || 0), 0)
+}
+
+const toggleFulfillmentItems = (id) => {
+  expandedFulfillmentIds.value[id] = !expandedFulfillmentIds.value[id]
+}
+
+const openCancelModal = () => {
+  cancelReason.value = ''
+  cancelShipping.value = true
+  cancelError.value = ''
+  showCancelModal.value = true
+}
+
+const closeCancelModal = () => {
+  if (cancelling.value) return
+  showCancelModal.value = false
+  cancelReason.value = ''
+  cancelError.value = ''
+}
+
+const CANCEL_ORDER_MUTATION = gql`
+  mutation CancelOrder($input: CancelOrderInput!) {
+    cancelOrder(input: $input) {
+      ... on Order {
+        id
+        state
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`
+
+const submitCancel = async () => {
+  if (!order.value?.id) return
+  cancelling.value = true
+  cancelError.value = ''
+  try {
+    const channelToken = getChannelTokenFromQuery() || authStore.activeChannel?.token || null
+    const apolloClient = createApolloClient(authStore.token, channelToken)
+    const input = { orderId: order.value.id, cancelShipping: cancelShipping.value }
+    if (cancelReason.value.trim()) {
+      input.reason = cancelReason.value.trim()
+    }
+    const { data } = await apolloClient.mutate({
+      mutation: CANCEL_ORDER_MUTATION,
+      variables: { input }
+    })
+    const result = data?.cancelOrder
+    if (result?.errorCode || result?.message) {
+      cancelError.value = result.message || result.errorCode
+    } else {
+      showCancelModal.value = false
+      cancelReason.value = ''
+      await fetchOrder()
+    }
+  } catch (err) {
+    console.error('Failed to cancel order:', err)
+    cancelError.value = err.message || 'Failed to cancel order'
+  } finally {
+    cancelling.value = false
   }
 }
 

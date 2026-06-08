@@ -32,6 +32,7 @@
               <th class="px-4 py-3 font-semibold">Code</th>
               <th class="px-4 py-3 font-semibold">Name</th>
               <th class="px-4 py-3 font-semibold">Email</th>
+              <th v-if="authStore.isSuperAdmin" class="px-4 py-3 font-semibold">Channel</th>
               <th class="px-4 py-3 font-semibold">Orders</th>
               <th class="px-4 py-3 font-semibold">Groups</th>
             </tr>
@@ -42,6 +43,7 @@
               <td class="px-4 py-3 text-blue-300 font-mono text-sm">{{ customer.id }}</td>
               <td class="px-4 py-3 text-gray-300">{{ customer.firstName }} {{ customer.lastName }}</td>
               <td class="px-4 py-3 text-gray-400">{{ customer.emailAddress }}</td>
+              <td v-if="authStore.isSuperAdmin" class="px-4 py-3 text-gray-300 text-sm font-mono">{{ channelCodes(customer) }}</td>
               <td class="px-4 py-3 text-gray-300">{{ customer.orders?.totalItems ?? 0 }}</td>
               <td class="px-4 py-3 text-gray-300 text-sm">{{ customer.groups?.map(g => g.name).join(', ') || '-' }}</td>
             </tr>
@@ -151,6 +153,10 @@ const GET_CUSTOMERS_QUERY = gql`
           id
           name
         }
+        channels {
+          id
+          code
+        }
       }
       totalItems
     }
@@ -204,6 +210,14 @@ const firstPage = () => goToPage(1)
 const prevPage = () => goToPage(Math.max(1, currentPage.value - 1))
 const nextPage = () => goToPage(Math.min(totalPages.value, currentPage.value + 1))
 const lastPage = () => goToPage(totalPages.value)
+
+const channelCodes = (customer) => {
+  if (!customer.channels || customer.channels.length === 0) return '-'
+  const codes = customer.channels
+    .map(c => c.code)
+    .filter(code => code !== '__default_channel__')
+  return codes.length ? codes.join(', ') : '-'
+}
 
 onMounted(() => {
   fetchCustomers()
