@@ -58,6 +58,13 @@
             Clone Channel
           </router-link>
 
+          <router-link to="/clone-sub"
+            v-if="isSuperAdmin"
+            class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
+            active-class="bg-primary">
+            Clone Sub
+          </router-link>
+
 
 
           <router-link to="/import" v-if="isSuperAdmin"

@@ -115,7 +115,7 @@ def main(argv=None):
             print(f"  RAL {ral} (e.g. '{sample_name}'): not in "
                   f"0000_python/ral_colors.txt, skipped")
             continue
-        out_path = out_dir / f"ral-{ral}.jpg"
+        out_path = out_dir / f"ral_{ral}.jpg"
         try:
             render_color_no_text(match, out_path)
             ok += 1

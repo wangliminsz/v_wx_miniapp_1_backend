@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/auth'
 const ProductList = () => import('../components/ProductList.vue')
 const SearchPage = () => import('../pages/SearchPage.vue')
 const ChannelClone = () => import('../pages/ChannelClone.vue')
+const CloneSub = () => import('../pages/CloneSub.vue')
 const ImportPage = () => import('../pages/ImportPage.vue')
 const ImportProductPage = () => import('../pages/ImportProductPage.vue')
 const I18nZhPage = () => import('../pages/I18nZhPage.vue')
@@ -103,6 +104,14 @@ const routes = [
     path: '/channels/clone',
     name: 'ChannelClone',
     component: ChannelClone,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/clone-sub',
+    name: 'CloneSub',
+    component: CloneSub,
     meta: {
       requiresAuth: true
     }
