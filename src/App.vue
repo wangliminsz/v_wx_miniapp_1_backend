@@ -26,6 +26,10 @@
 
       <div v-if="authStore.isAuthenticated" class="mb-6 bg-dark-200 p-4 rounded-md border border-dark-100">
         <nav class="flex flex-wrap gap-4">
+          <router-link to="/collections" class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
+            activeClass="bg-primary">
+            Collections
+          </router-link>
           <router-link to="/products/paginated" class="px-4 py-2 bg-gray-600 text-white rounded-md transition-colors"
             activeClass="bg-primary">
             Product by Page
@@ -321,6 +325,9 @@ onMounted(async () => {
   if (authStore.isAuthenticated && authStore.token) {
     const API_URL = import.meta.env.VITE_VENDURE_ADMIN_API_URL || import.meta.env.VITE_VENDURE_URL
     try {
+      // Use `me.isSuperAdmin` directly — much simpler and more
+      // reliable than walking `activeAdministrator.user.roles`
+      // looking for `__super_admin_role__`.
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
@@ -328,24 +335,27 @@ onMounted(async () => {
           'Authorization': `Bearer ${authStore.token}`
         },
         body: JSON.stringify({
-          query: `query {
-            activeAdministrator {
-              user {
-                roles {
-                  code
-                }
-              }
+          query: `query CheckCurrentUser {
+            me {
+              id
+              identifier
+              isSuperAdmin
+              channels { id code }
             }
           }`
         })
       })
       const data = await response.json()
-      if (data.data?.activeAdministrator) {
-        console.log('isSuperAdmin ----------> 0604 data.data----->', data.data)
-        const roles = data.data.activeAdministrator.user.roles
-        isSuperAdmin.value = roles.some(r => r.code === '__super_admin_role__')
-        authStore.isSuperAdmin = isSuperAdmin.value
-        console.log('isSuperAdmin ----------> 0604 isSuperAdmin----->', isSuperAdmin)
+      const me = data.data?.me
+      if (me) {
+        // Direct boolean from the server — no role-code matching needed.
+        isSuperAdmin.value = !!me.isSuperAdmin
+        authStore.isSuperAdmin = !!me.isSuperAdmin
+        // eslint-disable-next-line no-console
+        console.log('[App] me.identifier =', me.identifier, ', isSuperAdmin =', me.isSuperAdmin)
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn('[App] /me query returned no data:', data)
       }
     } catch (e) {
       console.error('Failed to check admin role:', e)

@@ -19,11 +19,12 @@ const CustomerDetail = () => import('../pages/CustomerDetail.vue')
 const CustomerGroupList = () => import('../pages/CustomerGroupList.vue')
 const VariantGroupList = () => import('../pages/VariantGroupList.vue')
 const RalColors = () => import('../pages/RalColors.vue')
+const CollectionsList = () => import('../pages/CollectionsList.vue')
 
 const routes = [
   {
     path: '/',
-    redirect: '/products/paginated'
+    redirect: '/collections'
   },
   {
     path: '/products/paginated',
@@ -41,6 +42,12 @@ const routes = [
     path: '/ral-colors',
     name: 'RalColors',
     component: RalColors,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/collections',
+    name: 'CollectionsList',
+    component: CollectionsList,
     meta: { requiresAuth: true }
   },
 

@@ -1,12 +1,34 @@
-@baseUrl=http://192.168.0.51:3000/shop-api
-@baseUrl_admin=http://192.168.0.51:3000/admin-api
-@adminToken=26df74f26be27de534dfc7232b42b395706f49e26ff4891d816f38b0b1556fa2
+@baseUrl=https://yt.favor100.site/shop-api
+@baseUrl_admin=https://yt.favor100.site/admin-api
+@adminToken=0309d6e77cf435b5b50997ab148a168da11f7fdd6b54be2f9040c161fe975ccd
 
 @shopToken=1234
 
 @channelToken=the-channel-token-for-channel-dsy
 # @channelToken=the-channel-token-wang
 
+
+####
+### Check Current User with Auth
+POST {{baseUrl_admin}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "query": "query CheckCurrentUser { me { id identifier isSuperAdmin channels {id code}} }"
+}
+
+
+
+####
+
+
+POST {{baseUrl_admin}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query { __type(name: \"CurrentUser\") { name fields { name type { name kind ofType { name } } } } }"
+}
 
 
 ###############################################
@@ -250,7 +272,7 @@ vendure-token: {{channelToken}}
 vendure-token: {{channelToken}}
 #####
 
-POST http://192.168.0.51:3000/shop-api
+POST https://yt.favor100.site/shop-api
 Content-Type: application/json
 vendure-token: {{channelToken}}
 
@@ -398,41 +420,3 @@ Content-Type: application/json
 }
 
 ###############################################  Admin TOKEN TOKEN TOKEN OK OK OK
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-GET https://m.tu-bo.com/api/applet/colorBook/getRecipe/579118942560325 HTTP/1.1
-Host: m.tu-bo.com
-Connection: keep-alive
-Language: zh_CN
-Tubo-Sign: 24d5098f64a98e48dcdbda95b1be4b83
-Authorization: 2609a5c1a5e84117be16ad8997b2747d
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 MicroMessenger/7.0.20.1781(0x6700143B) NetType/WIFI MiniProgramEnv/Windows WindowsWechat/WMPF WindowsWechat(0x63090a13) UnifiedPCWindowsWechat(0xf2541936) XWEB/19823
-xweb_xhr: 1
-Content-Type: application/json
-Accept: */*
-Sec-Fetch-Site: cross-site
-Sec-Fetch-Mode: cors
-Sec-Fetch-Dest: empty
-Referer: https://servicewechat.com/wx245884ef5eb4d961/41/page-frame.html
-Accept-Encoding: gzip, deflate, br
-Accept-Language: zh-CN,zh;q=0.9
