@@ -190,10 +190,10 @@
                         Manage variants
                       </router-link> -->
 
-                      <router-link :to="{ name: 'ManageVariants', params: { productId: product.id }, query: $route.query }"
+                      <button @click="openManageVariants(product.id)"
                          class="flex-shrink-0 px-3 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-500 transition-colors">
                          Manage variants
-                       </router-link>
+                       </button>
 
 
                     </div>
@@ -770,6 +770,7 @@
 
 
 import { ref, onMounted, watch, onUnmounted, computed, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ApolloClient, InMemoryCache, gql, createHttpLink } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
 
@@ -809,6 +810,23 @@ const handleClickOutside = (event) => {
 
 const authStore = useAuthStore()
 const emit = defineEmits(['selection-change'])
+const router = useRouter()
+const route = useRoute()
+
+// Open the Manage Variants page for a given product in a NEW TAB.
+// `router.resolve` builds the proper URL (going through the router's
+// path resolution and the channel-propagation guard), then we hand
+// that URL to window.open. Using router.resolve — rather than
+// concatenating strings — keeps us safe if the route definition ever
+// changes.
+const openManageVariants = (productId) => {
+  const href = router.resolve({
+    name: 'ManageVariants',
+    params: { productId },
+    query: route.query
+  }).href
+  window.open(href, '_blank', 'noopener,noreferrer')
+}
 
 // State
 const loading = ref(false)

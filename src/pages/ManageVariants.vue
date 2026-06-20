@@ -15,12 +15,6 @@
           </div>
         </div>
 
-        <div>
-          <button @click="$router.back()" class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600">
-            Back
-          </button>
-        </div>
-
       </div>
 
       <div>
@@ -87,10 +81,15 @@
             </div>
 
             <div class="bg-dark-200 rounded-md p-4 border border-dark-100">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Single column layout so the Variant name
+                   input takes the full width of the card. The
+                   grid is kept (instead of a plain block) so
+                   that future fields like SKU can be re-added
+                   alongside in a 2-column layout if needed. -->
+              <div class="grid grid-cols-1 gap-4">
                 <div>
                   <label class="block text-sm text-gray-300 mb-1">Variant name</label>
-                  <input v-model="variantForm.name" type="text" disabled
+                  <input v-model="variantForm.name" type="text"
                     class="w-full px-3 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none focus:border-blue-500" />
                 </div>
                 <!-- <div>
@@ -128,16 +127,140 @@
               </div>
             </div>
 
+            <!-- Perpetual inventory (super admin only) -->
+            <template v-if="isSuperAdmin">
+            <div class="bg-dark-200 rounded-md p-4 border border-dark-100">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-md font-medium text-white mb-1">Perpetual inventory</h3>
+                  <p class="text-xs text-gray-500">
+                    When on, this variant is treated as <em>always in stock</em> — the storefront
+                    can compute setup-fee / min-order amounts as if the inventory were infinite.
+                    When off, insufficient stock triggers a setup-fee message at checkout.
+                  </p>
+                </div>
+                <label class="inline-flex items-center cursor-pointer">
+                  <input v-model="variantForm.perpetualInventory" type="checkbox" class="sr-only peer" />
+                  <div class="relative w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2
+                              peer-focus:ring-blue-500 rounded-full peer
+                              peer-checked:after:translate-x-full
+                              rtl:peer-checked:after:-translate-x-full
+                              peer-checked:after:border-white
+                              after:content-[''] after:absolute after:top-[2px] after:start-[2px]
+                              after:bg-white after:border-gray-300 after:border
+                              after:rounded-full after:h-5 after:w-5
+                              after:transition-all
+                              peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              <p class="mt-2 text-xs"
+                :class="variantForm.perpetualInventory ? 'text-blue-300' : 'text-gray-500'">
+                {{ variantForm.perpetualInventory
+                    ? '✓ On — treat as always in stock (no setup-fee message)'
+                    : 'Off — setup-fee message will show when stock is insufficient' }}
+              </p>
+            </div>
+            </template>
+            <!-- /Perpetual inventory -->
+
+
+
+
+
+
+            <!-- The three custom-field cards (Price By Layer,
+                 Volume Prices, Volume Prices / Channel) are
+                 visible ONLY to super admins. Channel admins
+                 and delivery admins don't even see the cards
+                 in the DOM, so the page flows directly from
+                 "Price" into "Assets" without showing them. -->
+            <template v-if="isSuperAdmin">
             <div class="bg-dark-200 rounded-md p-4 border border-dark-100">
               <h3 class="text-md font-medium text-white mb-3">Price By Layer (by Customer Group)</h3>
-              <p class="text-xs text-gray-500 mb-2">JSON string, e.g. <code class="text-blue-400">{"group_1": 5000, "group_2": 6000}</code></p>
-              <textarea v-model="variantForm.priceByLayer" rows="4"
-                class="w-full px-3 py-2 bg-dark-300 text-white rounded-md border border-dark-100 focus:outline-none focus:border-blue-500 font-mono text-sm"></textarea>
-              <button v-if="variantForm.priceByLayer" @click="formatPriceByLayer"
-                class="mt-2 px-3 py-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-gray-600">
+              <p class="text-xs text-gray-500 mb-2">
+                JSON string, e.g.
+                <code class="text-blue-400">{"group_1": 5000, "group_2": 6000}</code>
+              </p>
+
+              <textarea v-model="variantForm.priceByLayer" rows="4" :disabled="!isSuperAdmin" class="
+      w-full px-3 py-2 bg-dark-300 text-white rounded-md border border-dark-100
+      focus:outline-none focus:border-blue-500 font-mono text-sm
+      disabled:opacity-60 disabled:cursor-not-allowed
+      resize-y scrollbar-thin scrollbar-thumb-dark-100" placeholder="JSON data" />
+
+              <div v-if="!isSuperAdmin" class="mt-1 text-xs text-amber-400">
+                🔒 Editable by super admin only
+              </div>
+
+              <button v-if="isSuperAdmin" @click="formatPriceByLayer"
+                class="mt-2 px-3 py-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-gray-600 disabled:opacity-50"
+                :disabled="!variantForm.priceByLayer">
                 Format JSON
               </button>
+
+              <p v-if="jsonFormatError" class="mt-2 text-xs text-red-400">
+                ❌ JSON parse error: {{ jsonFormatError }}
+              </p>
             </div>
+
+
+
+
+
+
+
+            <div class="bg-dark-200 rounded-md p-4 border border-dark-100">
+              <h3 class="text-md font-medium text-white mb-3">Volume Prices</h3>
+              <p class="text-xs text-gray-500 mb-1">数量折扣 — JSON array of <code
+                  class="text-blue-400">{minQuantity, rate}</code> pairs applied to all channels.</p>
+              <p class="text-xs text-gray-500 mb-2">Example: <code
+                  class="text-blue-400">[{"minQuantity": 1, "rate": 1.10}, {"minQuantity": 200, "rate": 1.00}, {"minQuantity": 500, "rate": 0.90}]</code>
+              </p>
+              <textarea v-model="variantForm.volumePrices" rows="4" :disabled="!isSuperAdmin" class="
+      w-full px-3 py-2 bg-dark-300 text-white rounded-md border border-dark-100
+      focus:outline-none focus:border-blue-500 font-mono text-sm
+      disabled:opacity-60 disabled:cursor-not-allowed
+      resize-y scrollbar-thin scrollbar-thumb-dark-100
+    " placeholder="JSON data"></textarea>
+              <div v-if="!isSuperAdmin" class="mt-1 text-xs text-amber-400">🔒 Editable by super admin only</div>
+              <button v-if="isSuperAdmin" @click="formatVolumePrices"
+                class="mt-2 px-3 py-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-gray-600 disabled:opacity-50"
+                :disabled="!variantForm.volumePrices">
+                Format JSON
+              </button>
+              <!-- JSON error tip -->
+              <p v-if="volumePricesError" class="mt-2 text-xs text-red-400">
+                ❌ JSON parse error: {{ volumePricesError }}
+              </p>
+            </div>
+
+            <div class="bg-dark-200 rounded-md p-4 border border-dark-100">
+              <h3 class="text-md font-medium text-white mb-3">Volume Prices / Channel</h3>
+              <p class="text-xs text-gray-500 mb-1">按频道的数量折扣 — JSON object, keys are channel tokens, values are arrays
+                of <code class="text-blue-400">{minQuantity, rate}</code> pairs (or the string <code
+                  class="text-blue-400">"close"</code>).</p>
+              <p class="text-xs text-gray-500 mb-2">Example: <code
+                  class="text-blue-400">{"__default_channel__": "close", "channel_xinyk": [{"minQuantity": 1, "rate": 1.2}]}</code>
+              </p>
+              <textarea v-model="variantForm.volumePricesPerChannel" rows="6" :disabled="!isSuperAdmin" class="
+      w-full px-3 py-2 bg-dark-300 text-white rounded-md border border-dark-100
+      focus:outline-none focus:border-blue-500 font-mono text-sm
+      disabled:opacity-60 disabled:cursor-not-allowed
+      resize-y scrollbar-thin scrollbar-thumb-dark-100
+    " placeholder="JSON data"></textarea>
+              <div v-if="!isSuperAdmin" class="mt-1 text-xs text-amber-400">🔒 Editable by super admin only</div>
+              <button v-if="isSuperAdmin" @click="formatVolumePricesPerChannel"
+                class="mt-2 px-3 py-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-gray-600 disabled:opacity-50"
+                :disabled="!variantForm.volumePricesPerChannel">
+                Format JSON
+              </button>
+              <!-- JSON error tip -->
+              <p v-if="volumePerChannelError" class="mt-2 text-xs text-red-400">
+                ❌ JSON parse error: {{ volumePerChannelError }}
+              </p>
+            </div>
+            </template>
+            <!-- /super-admin-only custom-field cards -->
 
             <div class="bg-dark-200 rounded-md p-4 border border-dark-100">
               <h3 class="text-md font-medium text-white mb-3">Assets</h3>
@@ -294,6 +417,13 @@ import { getChannelTokenFromQuery } from '../utils/channelToken.js'
 const route = useRoute()
 const authStore = useAuthStore()
 
+// Single source of truth for "is this user a Vendure super
+// admin". Reads from the auth store's getter so the value
+// is the same one used in App.vue, VariantGroupList, and
+// OrderDetail. Used here to gate editability of the three
+// custom-field textareas.
+const isSuperAdmin = computed(() => authStore.userRole === 'superadmin')
+
 const loading = ref(false)
 const error = ref('')
 const product = ref(null)
@@ -325,6 +455,9 @@ const variantForm = ref({
   sku: '',
   price: 0,
   priceByLayer: '',
+  volumePrices: '',
+  volumePricesPerChannel: '',
+  perpetualInventory: false,
   assets: [],
   featuredAsset: null,
   facetValues: [],
@@ -339,6 +472,13 @@ const tempSelectedAssetIds = ref([])
 // Facet selector
 const showFacetSelector = ref(false)
 const tempSelectedFacetValueIds = ref([])
+
+// JSON parse error refs (referenced in the JSON-card templates; declared
+// here so Vue doesn't warn about missing properties. Each format function
+// sets the appropriate ref to a non-empty string when parsing fails.)
+const jsonFormatError = ref('')
+const volumePricesError = ref('')
+const volumePerChannelError = ref('')
 
 let apolloClient = null
 
@@ -383,6 +523,8 @@ const GET_PRODUCT_QUERY = gql`
         price
         customFields {
           priceByLayer
+          volumePrices
+          volumePricesPerChannel
         }
         translations {
           id
@@ -453,6 +595,8 @@ const UPDATE_VARIANT_MUTATION = gql`
       price
       customFields {
         priceByLayer
+        volumePrices
+        volumePricesPerChannel
       }
       translations {
         id
@@ -548,6 +692,13 @@ const fetchProduct = async () => {
 
 const selectVariant = (variant) => {
   selectedVariant.value = variant
+  // Debug: log what we got from the GraphQL response so we can
+  // verify the customFields selection includes perpetualInventory
+  // and the value type is what we expect.
+  console.log('[ManageVariants] selectVariant called for id=' + variant.id,
+    'variant.customFields =', JSON.stringify(variant.customFields, null, 2),
+    'typeof perpetualInventory =', typeof variant.customFields?.perpetualInventory,
+    'value =', variant.customFields?.perpetualInventory)
   // Find the name in the default language
   let name = variant.name || ''
   const defaultTrans = variant.translations?.find(t => t.languageCode === defaultLanguageCode.value)
@@ -570,6 +721,9 @@ const selectVariant = (variant) => {
     sku: cleanVariant.sku || '',
     price: parseFloat(displayPrice),
     priceByLayer: cleanVariant.customFields?.priceByLayer || '',
+    volumePrices: cleanVariant.customFields?.volumePrices || '',
+    volumePricesPerChannel: cleanVariant.customFields?.volumePricesPerChannel || '',
+    perpetualInventory: cleanVariant.customFields?.perpetualInventory ?? false,
     assets: (cleanVariant.assets || []).map(a => {
       const { __typename, ...rest } = a
       return rest
@@ -588,6 +742,11 @@ const selectVariant = (variant) => {
     }),
     translations: cleanTranslations
   }
+  // Debug: log the populated form state for perpetualInventory specifically
+  console.log('[ManageVariants] variantForm populated for variant id=' + variant.id,
+    'perpetualInventory =', variantForm.value.perpetualInventory,
+    'typeof =', typeof variantForm.value.perpetualInventory,
+    'isSuperAdmin =', isSuperAdmin.value)
 }
 
 const getAssetUrl = (preview) => {
@@ -608,10 +767,37 @@ const getAssetUrl = (preview) => {
   return preview
 }
 
+// Watch the perpetual inventory field so we can see when the user
+// toggles it (before clicking Update). The `watch` function is
+// already imported at the top of this script from 'vue'.
+watch(() => variantForm.value.perpetualInventory, (newVal, oldVal) => {
+  console.log('[ManageVariants] perpetualInventory changed:',
+    oldVal, '→', newVal,
+    '(isSuperAdmin =', isSuperAdmin.value + ')')
+})
+
 const formatPriceByLayer = () => {
   try {
     const parsed = JSON.parse(variantForm.value.priceByLayer)
     variantForm.value.priceByLayer = JSON.stringify(parsed, null, 2)
+  } catch {
+    // ignore invalid JSON
+  }
+}
+
+const formatVolumePrices = () => {
+  try {
+    const parsed = JSON.parse(variantForm.value.volumePrices)
+    variantForm.value.volumePrices = JSON.stringify(parsed, null, 2)
+  } catch {
+    // ignore invalid JSON
+  }
+}
+
+const formatVolumePricesPerChannel = () => {
+  try {
+    const parsed = JSON.parse(variantForm.value.volumePricesPerChannel)
+    variantForm.value.volumePricesPerChannel = JSON.stringify(parsed, null, 2)
   } catch {
     // ignore invalid JSON
   }
@@ -642,6 +828,19 @@ const saveVariant = async () => {
 
     // Convert price back to cents for Vendure
     const priceInCents = Math.round(variantForm.value.price * 100)
+    // Build the customFields input ONLY for super admins. For
+    // channel admins / delivery admins the key is omitted
+    // entirely so Vendure's mutation doesn't touch the
+    // pricing data on the variant at all.
+    const customFieldsInput = isSuperAdmin.value ? {
+      priceByLayer: variantForm.value.priceByLayer,
+      volumePrices: variantForm.value.volumePrices,
+      volumePricesPerChannel: variantForm.value.volumePricesPerChannel,
+      perpetualInventory: variantForm.value.perpetualInventory
+    } : undefined
+    // Diagnostic: log exactly what the client is sending so we
+    // can compare it against the server-side response.
+    console.log('[ManageVariants] saving variant', variantForm.value.id, 'with customFields:', customFieldsInput)
     const result = await apolloClient.mutate({
       mutation: UPDATE_VARIANT_MUTATION,
       variables: {
@@ -650,7 +849,7 @@ const saveVariant = async () => {
           enabled: variantForm.value.enabled,
           sku: variantForm.value.sku,
           price: priceInCents,
-          customFields: { priceByLayer: variantForm.value.priceByLayer },
+          ...(customFieldsInput ? { customFields: customFieldsInput } : {}),
           translations: updatedTranslations,
           assetIds: variantForm.value.assets?.map(a => a.id) || [],
           featuredAssetId: variantForm.value.featuredAsset?.id || null,
@@ -658,6 +857,13 @@ const saveVariant = async () => {
         }
       }
     })
+    // Diagnostic: log the raw response so we can see what the
+    // server actually stored. If the response has
+    // `errorCode`, the save was rejected — most likely the
+    // field name doesn't match the GraphQL input shape, or
+    // the value type is wrong (e.g. an object instead of a
+    // string for a `type: 'string'` custom field).
+    console.log('[ManageVariants] updateProductVariant raw response:', JSON.stringify(result.data, null, 2))
 
     if (result.data?.updateProductVariant) {
       // Update the variant in the list - use a new array to avoid mutating frozen Apollo data
@@ -679,8 +885,20 @@ const saveVariant = async () => {
       }
     }
   } catch (err) {
-    console.error(err)
-    error.value = err.message
+    console.error('[ManageVariants] saveVariant FAILED:', err)
+    // Extract the actual server-side message (Apollo's
+    // default is just "Network error: 400" which is useless
+    // for diagnosing which field the server rejected).
+    const networkResult = err.networkError?.result
+    const graphQLErrors = err.graphQLErrors || []
+    const serverMessage =
+      networkResult?.message ||
+      (Array.isArray(networkResult?.errors) && networkResult.errors[0]?.message) ||
+      graphQLErrors[0]?.message ||
+      err.message ||
+      String(err) ||
+      'Save failed'
+    error.value = serverMessage
   } finally {
     isSaving.value = false
   }

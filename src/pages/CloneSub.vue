@@ -1,6 +1,6 @@
 <template>
   <div class="clone-sub-page">
-    <h1 class="text-2xl font-semibold text-gray-300 mb-6">Clone Sub</h1>
+    <h1 class="text-2xl font-semibold text-gray-300 mb-6">Clone Channel</h1>
 
     <!-- Loading state -->
     <div v-if="loading" class="text-center py-10 text-gray-400">Loading...</div>

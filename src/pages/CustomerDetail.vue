@@ -9,9 +9,40 @@
   <div v-else-if="customer" class="customer-detail-section">
     <router-link to="/customers" class="text-blue-400 hover:text-blue-300 mb-4 inline-block">&larr; Back to Customers</router-link>
 
+        <div class="mb-6 bg-dark-200 p-4 rounded-md border border-dark-100">
+      <div class="flex items-center justify-between mb-3">
+        <!-- <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Custom Fields</h3> -->
+        <div class="flex justify-between"><span class="max-w-md text-right whitespace-pre-wrap">{{ customer.customFields?.companyInfo || '-' }}</span></div>
+        <button v-if="!editingCustom" @click="startEditCustom" class="px-3 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-500 transition-colors">Edit</button>
+      </div>
+
+      <div v-if="!editingCustom" class="text-gray-300 space-y-2 text-sm">
+        <!-- <div class="flex justify-between"><span class="text-gray-500">Company Info</span><span class="max-w-md text-right whitespace-pre-wrap">{{ customer.customFields?.companyInfo || '-' }}</span></div> -->
+        <div class="flex justify-between"><span class="text-gray-500">Invoice Info</span><span class="max-w-md text-right whitespace-pre-wrap">{{ customer.customFields?.invoiceInfo || '-' }}</span></div>
+      </div>
+
+      <div v-else class="space-y-3">
+        <div>
+          <label class="block text-gray-500 text-xs mb-1">Company Info</label>
+          <textarea v-model="editCompanyInfo" rows="3" class="w-full px-3 py-2 bg-dark-100 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary text-sm font-mono resize-y"></textarea>
+        </div>
+        <div>
+          <label class="block text-gray-500 text-xs mb-1">Invoice Info</label>
+          <textarea v-model="editInvoiceInfo" rows="3" class="w-full px-3 py-2 bg-dark-100 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary text-sm font-mono resize-y"></textarea>
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button @click="cancelEditCustom" class="px-4 py-2 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-500 transition-colors">Cancel</button>
+          <button @click="saveCustom" :disabled="savingCustom" class="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-500 transition-colors disabled:opacity-50">{{ savingCustom ? 'Saving...' : 'Save' }}</button>
+        </div>
+        <div v-if="saveError" class="text-red-400 text-sm">{{ saveError }}</div>
+      </div>
+    </div>
+    
     <div class="flex items-center justify-between mb-6 bg-dark-200 p-4 rounded-md border border-dark-100">
       <div class="flex items-center gap-4">
-        <h2 class="text-2xl font-bold text-dark-300">{{ customer.firstName }} {{ customer.lastName }}</h2>
+        <!-- <h2 class="text-2xl font-bold text-dark-300">{{ customer.firstName }} {{ customer.lastName }}</h2> -->
+        <!-- "max-w-md text-right whitespace-pre-wrap -->
+        <span class="max-w-md text-right whitespace-pre-wrap">{{ customer.firstName }} {{ customer.lastName }}</span>
         <span class="text-gray-400 font-mono text-sm">#{{ customer.id }}</span>
       </div>
       <div class="text-right text-sm text-gray-400">
@@ -49,33 +80,7 @@
       </div>
     </div>
 
-    <div class="mb-6 bg-dark-200 p-4 rounded-md border border-dark-100">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Custom Fields</h3>
-        <button v-if="!editingCustom" @click="startEditCustom" class="px-3 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-500 transition-colors">Edit</button>
-      </div>
 
-      <div v-if="!editingCustom" class="text-gray-300 space-y-2 text-sm">
-        <div class="flex justify-between"><span class="text-gray-500">Company Info</span><span class="max-w-md text-right whitespace-pre-wrap">{{ customer.customFields?.companyInfo || '-' }}</span></div>
-        <div class="flex justify-between"><span class="text-gray-500">Invoice Info</span><span class="max-w-md text-right whitespace-pre-wrap">{{ customer.customFields?.invoiceInfo || '-' }}</span></div>
-      </div>
-
-      <div v-else class="space-y-3">
-        <div>
-          <label class="block text-gray-500 text-xs mb-1">Company Info</label>
-          <textarea v-model="editCompanyInfo" rows="3" class="w-full px-3 py-2 bg-dark-100 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary text-sm font-mono resize-y"></textarea>
-        </div>
-        <div>
-          <label class="block text-gray-500 text-xs mb-1">Invoice Info</label>
-          <textarea v-model="editInvoiceInfo" rows="3" class="w-full px-3 py-2 bg-dark-100 text-white rounded-md border border-dark-100 focus:outline-none focus:border-secondary text-sm font-mono resize-y"></textarea>
-        </div>
-        <div class="flex gap-2 justify-end">
-          <button @click="cancelEditCustom" class="px-4 py-2 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-500 transition-colors">Cancel</button>
-          <button @click="saveCustom" :disabled="savingCustom" class="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-500 transition-colors disabled:opacity-50">{{ savingCustom ? 'Saving...' : 'Save' }}</button>
-        </div>
-        <div v-if="saveError" class="text-red-400 text-sm">{{ saveError }}</div>
-      </div>
-    </div>
 
     <div class="mb-6 bg-dark-200 p-4 rounded-md border border-dark-100">
       <div class="flex items-center justify-between mb-3">

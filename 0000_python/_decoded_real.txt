@@ -1,2 +1,0 @@
-productSlug,variantSku,variantName,variantPrice,taxCategoryName,variantFacetValues,stockLevels,variantAssets,variantFeaturedAsset,options
-"he1086l-g20-002","HE1086L-G20-002","[HE1086L-G20-002] 黑色平光环氧防腐粉末涂料","29","Zero Tax","","HE1086L-G20-002: 1000","","","spec-package:20kg"

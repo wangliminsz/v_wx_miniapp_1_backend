@@ -45,35 +45,48 @@
           <thead>
             <tr class="border-b border-dark-100 text-gray-400 text-sm uppercase tracking-wider">
               <th class="px-4 py-3 font-semibold">ID</th>
+              <th class="px-4 py-3 font-semibold">Company</th>
+              <th class="px-4 py-3 font-semibold">Name</th>
               <th class="px-4 py-3 font-semibold">Code</th>
               <th class="px-4 py-3 font-semibold">State</th>
-              <th class="px-4 py-3 font-semibold">Customer</th>
-              <th class="px-4 py-3 font-semibold">Channel</th>
-              <th class="px-4 py-3 font-semibold">Total</th>
-              <th class="px-4 py-3 font-semibold">Shipping</th>
+              <th v-if="!isDeliveryAdmin" class="px-4 py-3 font-semibold">Channel</th>
+              <th v-if="!isDeliveryAdmin" class="px-4 py-3 font-semibold">Total</th>
+              <th v-if="!isDeliveryAdmin" class="px-4 py-3 font-semibold">Shipping</th>
               <th class="px-4 py-3 font-semibold">Placed At</th>
               <th class="px-4 py-3 font-semibold">Lines</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="order in orders" :key="order.id" class="border-b border-dark-100 hover:bg-dark-200/50 transition-colors">
-              <td class="px-4 py-3 text-gray-300 font-mono text-xs">{{ order.id }}</td>
+              <td class="px-4 py-3 text-blue-300 font-mono text-xs"><router-link :to="`/orders/${order.id}`" class="hover:underline">{{ order.id }}</router-link></td>
+
+
+              <!-- ${order.customer.firstName} -->
+              <td class="px-4 py-3 text-blue-300"><router-link :to="`/orders/${order.id}`" class="hover:underline">
+                {{ order.customer?.customFields?.companyInfo || '-' }}
+              </router-link></td>
+
+              <!-- ${order.customer.firstName} -->
+              <td class="px-4 py-3 text-gray-300">
+                {{ order.customer ? `${order.customer.lastName}` : '-' }}
+              </td>
+
+
+
               <td class="px-4 py-3 text-blue-300 font-mono text-sm"><router-link :to="`/orders/${order.id}`" class="hover:underline">{{ order.code }}</router-link></td>
               <td class="px-4 py-3">
                 <span :class="stateClass(order.state)" class="px-2 py-1 rounded-full text-xs font-semibold">
                   {{ order.state }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-gray-300">
-                {{ order.customer ? `${order.customer.firstName} ${order.customer.lastName}` : '-' }}
-              </td>
-              <td class="px-4 py-3 text-gray-300 text-sm font-mono">
+              
+              <td v-if="!isDeliveryAdmin" class="px-4 py-3 text-gray-300 text-sm font-mono">
                 {{ channelCodes(order) }}
               </td>
-              <td class="px-4 py-3 text-gray-300 font-mono">
+              <td v-if="!isDeliveryAdmin" class="px-4 py-3 text-gray-300 font-mono">
                 {{ formatPrice(order.totalWithTax) }} {{ order.currencyCode }}
               </td>
-              <td class="px-4 py-3 text-gray-300 text-sm">
+              <td v-if="!isDeliveryAdmin" class="px-4 py-3 text-gray-300 text-sm">
                 {{ shippingMethod(order) }}
               </td>
               <td class="px-4 py-3 text-gray-300 text-sm">
@@ -100,6 +113,12 @@ import { ApolloClient, InMemoryCache, createHttpLink, gql } from '@apollo/client
 import { setContext } from '@apollo/client/link/context'
 
 const authStore = useAuthStore()
+// Delivery admins are restricted to a smaller column set on the
+// Orders page. They see ID, Code, State, Customer, Placed At, and
+// Lines — but NOT Channel, Total, or Shipping (the three columns
+// most likely to leak pricing/financial data to staff who should
+// only be handling order state).
+const isDeliveryAdmin = computed(() => authStore.userRole === 'admin_for_delivery')
 
 const orders = ref([])
 const loading = ref(false)
@@ -161,6 +180,9 @@ const GET_ORDERS_QUERY = gql`
           firstName
           lastName
           emailAddress
+          customFields {
+            companyInfo
+          }
         }
         lines {
           id
