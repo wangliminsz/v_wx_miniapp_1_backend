@@ -132,12 +132,12 @@
             <div class="bg-dark-200 rounded-md p-4 border border-dark-100">
               <div class="flex items-center justify-between">
                 <div>
-                  <h3 class="text-md font-medium text-white mb-1">Perpetual inventory</h3>
-                  <p class="text-xs text-gray-500">
+                  <h3 class="text-md font-medium text-white mb-1">Perpetual inventory 是否常备库存</h3>
+                  <!-- <p class="text-xs text-gray-500">
                     When on, this variant is treated as <em>always in stock</em> — the storefront
                     can compute setup-fee / min-order amounts as if the inventory were infinite.
                     When off, insufficient stock triggers a setup-fee message at checkout.
-                  </p>
+                  </p> -->
                 </div>
                 <label class="inline-flex items-center cursor-pointer">
                   <input v-model="variantForm.perpetualInventory" type="checkbox" class="sr-only peer" />
@@ -156,8 +156,8 @@
               <p class="mt-2 text-xs"
                 :class="variantForm.perpetualInventory ? 'text-blue-300' : 'text-gray-500'">
                 {{ variantForm.perpetualInventory
-                    ? '✓ On — treat as always in stock (no setup-fee message)'
-                    : 'Off — setup-fee message will show when stock is insufficient' }}
+                    ? '✓ On — treat as Perpetual Inventory (no setup-fee message)'
+                    : 'Off — non-Perpetual Inventory (with setup-fee message)' }}
               </p>
             </div>
             </template>
@@ -525,6 +525,7 @@ const GET_PRODUCT_QUERY = gql`
           priceByLayer
           volumePrices
           volumePricesPerChannel
+          perpetualInventory
         }
         translations {
           id
@@ -597,6 +598,7 @@ const UPDATE_VARIANT_MUTATION = gql`
         priceByLayer
         volumePrices
         volumePricesPerChannel
+        perpetualInventory
       }
       translations {
         id
@@ -689,6 +691,17 @@ const fetchProduct = async () => {
     loading.value = false
   }
 }
+
+// === HMR/STATE DIAGNOSTIC ===
+// This log fires once when the component is first evaluated. If you
+// see it in the console, the latest script is running. If you don't,
+// the browser is running a cached version of the module.
+console.log('[ManageVariants] module loaded at ' + new Date().toISOString(),
+  'refs defined =', {
+    jsonFormatError: typeof jsonFormatError !== 'undefined',
+    volumePricesError: typeof volumePricesError !== 'undefined',
+    volumePerChannelError: typeof volumePerChannelError !== 'undefined'
+  })
 
 const selectVariant = (variant) => {
   selectedVariant.value = variant

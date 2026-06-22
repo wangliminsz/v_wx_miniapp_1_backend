@@ -45,6 +45,7 @@
           <thead>
             <tr class="border-b border-dark-100 text-gray-400 text-sm uppercase tracking-wider">
               <th class="px-4 py-3 font-semibold">ID</th>
+              <th class="px-4 py-3 font-semibold">Placed At</th>
               <th class="px-4 py-3 font-semibold">Company</th>
               <th class="px-4 py-3 font-semibold">Name</th>
               <th class="px-4 py-3 font-semibold">Code</th>
@@ -52,13 +53,15 @@
               <th v-if="!isDeliveryAdmin" class="px-4 py-3 font-semibold">Channel</th>
               <th v-if="!isDeliveryAdmin" class="px-4 py-3 font-semibold">Total</th>
               <th v-if="!isDeliveryAdmin" class="px-4 py-3 font-semibold">Shipping</th>
-              <th class="px-4 py-3 font-semibold">Placed At</th>
               <th class="px-4 py-3 font-semibold">Lines</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="order in orders" :key="order.id" class="border-b border-dark-100 hover:bg-dark-200/50 transition-colors">
               <td class="px-4 py-3 text-blue-300 font-mono text-xs"><router-link :to="`/orders/${order.id}`" class="hover:underline">{{ order.id }}</router-link></td>
+              <td class="px-4 py-3 text-blue-300 text-sm"><router-link :to="`/orders/${order.id}`" class="hover:underline">
+                {{ formatDate(order.orderPlacedAt || order.createdAt) }}
+              </router-link></td>
 
 
               <!-- ${order.customer.firstName} -->
@@ -67,9 +70,9 @@
               </router-link></td>
 
               <!-- ${order.customer.firstName} -->
-              <td class="px-4 py-3 text-gray-300">
+              <td class="px-4 py-3 text-blue-300"><router-link :to="`/orders/${order.id}`" class="hover:underline">
                 {{ order.customer ? `${order.customer.lastName}` : '-' }}
-              </td>
+              </router-link></td>
 
 
 
@@ -88,9 +91,6 @@
               </td>
               <td v-if="!isDeliveryAdmin" class="px-4 py-3 text-gray-300 text-sm">
                 {{ shippingMethod(order) }}
-              </td>
-              <td class="px-4 py-3 text-gray-300 text-sm">
-                {{ formatDate(order.orderPlacedAt || order.createdAt) }}
               </td>
               <td class="px-4 py-3 text-gray-300 text-sm">
                 {{ order.lines.length }}
@@ -279,7 +279,8 @@ const channelCodes = (order) => {
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  // return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 onMounted(() => {
